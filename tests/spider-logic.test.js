@@ -1,4 +1,4 @@
-﻿(function runSpiderLogicTests() {
+(function runSpiderLogicTests() {
   "use strict";
 
   const outEl = document.getElementById("out");
@@ -108,8 +108,9 @@
       cols: 5,
       spider: [
         { x: 0, y: 0 },
-        { x: 0, y: 1 },
         { x: 1, y: 0 },
+        { x: 1, y: 1 },
+        { x: 0, y: 1 },
       ],
       spiderDirection: "up",
       fly: { x: 4, y: 4 },

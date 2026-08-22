@@ -171,6 +171,7 @@
   }
 
   function startSpinChaos() {
+    document.body.classList.remove("danger-flash");
     if (reduceMotion?.matches) return;
     document.body.classList.add("web-spin");
     stopSpinChaos();
@@ -505,7 +506,7 @@
     state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
     render();
     updateIntensity();
-    document.body.classList.remove("web-spin");
+    document.body.classList.remove("danger-flash", "web-spin");
   });
   soundBtn.addEventListener("click", () => {
     if (!audio) return;
