@@ -189,10 +189,10 @@
     assert(s2.webShotSeq === 1, "webShotSeq should increment");
     assert(s2.webCooldownTicks > 0, "webCooldownTicks should be set");
     assert(s2.webs.length >= 1, "Should add web traps");
-    assertPoint(s2.webs[0], { x: 0, y: 4 }, "Web should be within max range of the spider");
+    assertPoint(s2.webs[0], { x: 0, y: 3 }, "Web should be within max range of the spider");
     assert(!!s2.webBeam, "webBeam should be set for rendering");
     assertPoint(s2.webBeam.from, { x: 0, y: 0 }, "Beam origin should be the spider head at shoot time");
-    assertPoint(s2.webBeam.to, { x: 0, y: 4 }, "Beam range should be capped");
+    assertPoint(s2.webBeam.to, { x: 0, y: 3 }, "Beam range should be capped");
   });
 
   test("When adjacent, web shot tries to place beyond the fly (no insta-kill)", () => {

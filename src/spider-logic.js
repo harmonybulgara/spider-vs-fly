@@ -26,7 +26,7 @@
 
   const WEB_BEAM_TTL_TICKS = 4;
   const LEARN_AFTER_MS = 120000;
-  const WEB_MAX_RANGE_BLOCKS = 4;
+  const WEB_MAX_RANGE_BLOCKS = 3;
 
   function clamp01(v) {
     if (typeof v !== "number" || !Number.isFinite(v)) return 0;
