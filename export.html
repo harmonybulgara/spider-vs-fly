@@ -1,0 +1,2313 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta property="og:title" content="Spider vs Fly" />
+    <meta property="og:description" content="A tiny, intense, dependency-free web game: you control the fly; an AI spider chases and shoots webs." />
+    <meta property="og:type" content="website" />
+    <title>Spider vs Fly</title>
+    <style>
+:root {
+  --bg: #0f1115;
+  --panel: #151922;
+  --text: #e6e6e6;
+  --muted: #a7b0c0;
+  --cell: #232836;
+  --spider-red: #ff3b3b;
+  --spider-blue: #3b82f6;
+  --fly: #111827;
+  --border: rgba(255, 255, 255, 0.08);
+  --cell-size: min(4.4vw, 20px);
+  --gap: 1px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Full-screen death flash */
+body.danger-flash::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(255, 0, 0, 0.0);
+  animation: danger-screen 520ms ease-out 1;
+}
+
+@keyframes danger-screen {
+  0% {
+    background: rgba(255, 0, 0, 0);
+  }
+  10% {
+    background: rgba(255, 0, 0, 0.55);
+  }
+  28% {
+    background: rgba(255, 0, 0, 0.25);
+  }
+  100% {
+    background: rgba(255, 0, 0, 0);
+  }
+}
+
+a {
+  color: var(--muted);
+}
+
+.app {
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px;
+  isolation: isolate;
+}
+
+/* Cartoony, emoji-like web background (slow spin for mild disorientation). */
+.app::before {
+  content: "";
+  position: fixed;
+  inset: -30vmax;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.85;
+  background:
+    /* rings */
+    repeating-radial-gradient(
+      circle at 50% 45%,
+      rgba(255, 255, 255, 0.10) 0 2px,
+      transparent 2px 26px
+    ),
+    /* spokes */
+    repeating-conic-gradient(
+      from 5deg at 50% 45%,
+      rgba(255, 255, 255, 0.10) 0 1.6deg,
+      transparent 1.6deg 14deg
+    ),
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.06), transparent 60%);
+  transform-origin: 50% 45%;
+  animation: none;
+}
+
+@keyframes web-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+body.web-spin .app::before {
+  animation-name: web-spin;
+  animation-duration: var(--web-spin-duration, 18s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: var(--web-spin-direction, normal);
+}
+
+.top {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 0.2px;
+}
+
+.help {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.warning {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 100, 100, 0.35);
+  background: rgba(255, 0, 0, 0.08);
+  color: rgba(255, 240, 240, 0.92);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.warning strong {
+  font-weight: 700;
+}
+
+.hud {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 120px;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.value {
+  display: block;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.board {
+  margin-top: 16px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.grid {
+  --cols: 20;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell-size));
+  grid-auto-rows: var(--cell-size);
+  gap: var(--gap);
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: max-content;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  background: var(--cell);
+  border-radius: 4px;
+  position: relative;
+}
+
+.cell.spider {
+  background: linear-gradient(90deg, var(--spider-red) 0 50%, var(--spider-blue) 50% 100%);
+}
+
+.cell.spider-head {
+  background-image:
+    radial-gradient(circle at 35% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
+    radial-gradient(circle at 65% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
+    linear-gradient(90deg, var(--spider-red) 0 50%, var(--spider-blue) 50% 100%);
+}
+
+.cell.spider-head::before,
+.cell.spider-head::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 18px;
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+.cell.spider-head::before {
+  left: -18px;
+  background:
+    linear-gradient(205deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) left top/100% 25% no-repeat,
+    linear-gradient(185deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) left 25%/100% 25% no-repeat,
+    linear-gradient(175deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) left 50%/100% 25% no-repeat,
+    linear-gradient(155deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) left 75%/100% 25% no-repeat;
+}
+
+.cell.spider-head::after {
+  right: -18px;
+  background:
+    linear-gradient(335deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) right top/100% 25% no-repeat,
+    linear-gradient(355deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) right 25%/100% 25% no-repeat,
+    linear-gradient(5deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) right 50%/100% 25% no-repeat,
+    linear-gradient(25deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) right 75%/100% 25% no-repeat;
+}
+
+.cell.fly {
+  background-image:
+    radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
+    radial-gradient(circle at 70% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
+    radial-gradient(circle at 50% 62%, rgba(0, 0, 0, 0.55) 0 30%, transparent 31%);
+  background-color: var(--fly);
+}
+
+.cell.fly::before,
+.cell.fly::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  width: 60%;
+  height: 55%;
+  background:
+    radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.55) 0 28%, transparent 29%),
+    radial-gradient(circle at 65% 55%, rgba(255, 255, 255, 0.18) 0 55%, transparent 56%);
+  opacity: 0.9;
+  pointer-events: none;
+  filter: blur(0.15px);
+}
+
+.cell.fly::before {
+  left: -8px;
+  transform: rotate(-18deg);
+}
+
+.cell.fly::after {
+  right: -8px;
+  transform: rotate(18deg) scaleX(-1);
+}
+
+.cell.web-trap {
+  background-color: #1f2937;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.32) 0 2px, transparent 2px 100%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.26) 0 2px, transparent 2px 100%);
+  animation: web-pulse 700ms ease-in-out infinite;
+}
+
+.cell.web-beam {
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.0), rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.0)),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.0), rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.0));
+  filter: brightness(1.45);
+}
+
+.cell.spiderling {
+  background-color: #0b1220;
+  background-image:
+    radial-gradient(circle at 35% 40%, rgba(255, 255, 255, 0.85) 0 10%, transparent 11%),
+    radial-gradient(circle at 65% 40%, rgba(255, 255, 255, 0.85) 0 10%, transparent 11%),
+    radial-gradient(circle at 50% 70%, rgba(0, 0, 0, 0.55) 0 36%, transparent 37%);
+  outline: 1px solid rgba(255, 255, 255, 0.18);
+  filter: saturate(1.2);
+}
+
+@keyframes web-pulse {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+.intense-shake .grid {
+  animation: grid-shake 120ms linear infinite;
+  will-change: transform;
+}
+
+@keyframes grid-shake {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(var(--shake, 0px), 0);
+  }
+  45% {
+    transform: translate(calc(var(--shake, 0px) * -1), var(--shake, 0px));
+  }
+  70% {
+    transform: translate(var(--shake, 0px), calc(var(--shake, 0px) * -1));
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app::before {
+    animation: none;
+  }
+  body.web-spin .app::before {
+    animation: none;
+  }
+  .cell.web-trap {
+    animation: none;
+  }
+  .intense-shake .grid {
+    animation: none;
+  }
+}
+
+.danger-flash .grid {
+  animation: danger-flash 520ms ease-out 1;
+}
+
+@keyframes danger-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+  }
+  12% {
+    box-shadow: 0 0 0 8px rgba(255, 0, 0, 0.35);
+  }
+  30% {
+    box-shadow: 0 0 0 12px rgba(255, 0, 0, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+  }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 14px;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  max-width: 92%;
+  text-align: center;
+}
+
+.controls {
+  margin-top: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.input {
+  background: #0f1115;
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.btn:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.btn:focus-visible {
+  outline: 2px solid rgba(100, 255, 171, 0.6);
+  outline-offset: 2px;
+}
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dpad-row {
+  display: flex;
+  gap: 8px;
+}
+
+.dir {
+  width: 52px;
+  height: 44px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.footer {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+
+@media (max-width: 420px) {
+  .app {
+    padding: 14px;
+  }
+
+  .stat {
+    min-width: 0;
+  }
+
+  .grid {
+    padding: 8px;
+  }
+
+  .dir {
+    width: 48px;
+  }
+}
+
+</style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <div>
+          <h1>Spider vs Fly</h1>
+          <p class="help">You are the fly (Arrows/WASD) | The red/blue spider is AI | Space to pause | Enter to restart | Sound is on by default</p>
+          <p class="warning" role="note">
+            <strong>WARNING (photosensitivity):</strong> this game includes flashing red screens, shaking, and a spinning background.
+            If you have photosensitive epilepsy, consider not playing.
+          </p>
+        </div>
+        <div class="hud" aria-label="Score and status">
+          <div class="stat">
+            <span class="label">Survival</span>
+            <span id="score" class="value">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Best</span>
+            <span id="best" class="value">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Status</span>
+            <span id="status" class="value">Playing</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="board" aria-label="Game board">
+        <div id="grid" class="grid" role="application" aria-label="Spider web board"></div>
+        <div id="overlay" class="overlay" aria-live="polite" hidden></div>
+        <div id="toast" class="toast" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+        <div class="buttons">
+          <label class="select" for="difficulty">
+            Difficulty
+            <select id="difficulty" class="input" aria-label="Difficulty">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+          <button type="button" id="btn-start" class="btn">Start</button>
+          <button type="button" id="btn-pause" class="btn">Pause</button>
+          <button type="button" id="btn-restart" class="btn">Restart</button>
+          <button type="button" id="btn-sound" class="btn">Sound: Off</button>
+          <button type="button" id="btn-share" class="btn">Share</button>
+        </div>
+
+        <div class="dpad" aria-label="Directional pad">
+          <button type="button" class="btn dir" data-dir="up" aria-label="Up">Up</button>
+          <div class="dpad-row">
+            <button type="button" class="btn dir" data-dir="left" aria-label="Left">Left</button>
+            <button type="button" class="btn dir" data-dir="down" aria-label="Down">Down</button>
+            <button type="button" class="btn dir" data-dir="right" aria-label="Right">Right</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <a href="export.html">Single-file export</a>
+        <span> | </span>
+        <a href="tests/spider-logic.test.html">Run logic tests</a>
+      </footer>
+    </main>
+
+    <script>
+(function attachSnakeLogic(global) {
+  "use strict";
+
+  const DEFAULT_CONFIG = Object.freeze({ rows: 20, cols: 20 });
+  const STATUS = Object.freeze({
+    playing: "playing",
+    paused: "paused",
+    gameover: "gameover",
+  });
+
+  const DIR_VECTORS = Object.freeze({
+    up: Object.freeze({ x: 0, y: -1 }),
+    down: Object.freeze({ x: 0, y: 1 }),
+    left: Object.freeze({ x: -1, y: 0 }),
+    right: Object.freeze({ x: 1, y: 0 }),
+  });
+
+  const OPPOSITE_DIR = Object.freeze({
+    up: "down",
+    down: "up",
+    left: "right",
+    right: "left",
+  });
+
+  const AI_DIR_ORDER = Object.freeze(["up", "left", "down", "right"]);
+
+  const WEB_BEAM_TTL_TICKS = 4;
+  const LEARN_AFTER_MS = 120000;
+  const WEB_MAX_RANGE_BLOCKS = 4;
+
+  function clamp01(v) {
+    if (typeof v !== "number" || !Number.isFinite(v)) return 0;
+    if (v < 0) return 0;
+    if (v > 1) return 1;
+    return v;
+  }
+
+  function clampInt(value, min, fallback) {
+    if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+    const n = Math.floor(value);
+    return n < min ? min : n;
+  }
+
+  function normalizeConfig(config) {
+    const rows = clampInt(config?.rows, 4, DEFAULT_CONFIG.rows);
+    const cols = clampInt(config?.cols, 4, DEFAULT_CONFIG.cols);
+    return { rows, cols };
+  }
+
+  function createRng(seed) {
+    let t = (seed >>> 0) || 0;
+    return function rng() {
+      t += 0x6d2b79f5;
+      let x = t;
+      x = Math.imul(x ^ (x >>> 15), x | 1);
+      x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function safeRngValue(rng) {
+    const v = rng();
+    if (typeof v !== "number" || !Number.isFinite(v)) return 0;
+    if (v <= 0) return 0;
+    if (v >= 1) return 0.9999999999;
+    return v;
+  }
+
+  function randomInt(rng, maxExclusive) {
+    if (maxExclusive <= 0) return 0;
+    return Math.floor(safeRngValue(rng) * maxExclusive);
+  }
+
+  function samePoint(a, b) {
+    return !!a && !!b && a.x === b.x && a.y === b.y;
+  }
+
+  function toIndex(point, cols) {
+    return point.y * cols + point.x;
+  }
+
+  function isDirection(value) {
+    return value === "up" || value === "down" || value === "left" || value === "right";
+  }
+
+  function isOpposite(a, b) {
+    if (!isDirection(a) || !isDirection(b)) return false;
+    return OPPOSITE_DIR[a] === b;
+  }
+
+  function movePoint(head, direction) {
+    const vec = DIR_VECTORS[direction];
+    return { x: head.x + vec.x, y: head.y + vec.y };
+  }
+
+  function outOfBounds(point, rows, cols) {
+    return point.x < 0 || point.y < 0 || point.x >= cols || point.y >= rows;
+  }
+
+  function manhattan(a, b) {
+    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  }
+
+  function createDirMatrix() {
+    return {
+      up: { up: 0, down: 0, left: 0, right: 0 },
+      down: { up: 0, down: 0, left: 0, right: 0 },
+      left: { up: 0, down: 0, left: 0, right: 0 },
+      right: { up: 0, down: 0, left: 0, right: 0 },
+    };
+  }
+
+  function createFlyLearnState() {
+    return { lastDir: null, counts: createDirMatrix() };
+  }
+
+  function updateFlyLearn(learn, movedDir) {
+    const base = learn && typeof learn === "object" && learn.counts ? learn : createFlyLearnState();
+    if (!isDirection(movedDir)) return base;
+
+    const last = base.lastDir;
+    if (isDirection(last)) {
+      const counts = base.counts;
+      counts[last][movedDir] = (counts[last][movedDir] || 0) + 1;
+      return { lastDir: movedDir, counts };
+    }
+    return { lastDir: movedDir, counts: base.counts };
+  }
+
+  function predictFlyDirection(learn, fromDir) {
+    if (!learn || !learn.counts || !isDirection(fromDir)) return null;
+    const row = learn.counts[fromDir];
+    if (!row) return null;
+
+    let bestDir = null;
+    let best = 0;
+    let total = 0;
+    for (const dir of AI_DIR_ORDER) {
+      const c = row[dir] || 0;
+      total += c;
+      if (c > best) {
+        best = c;
+        bestDir = dir;
+      }
+    }
+    if (!bestDir || best <= 0) return null;
+    return { dir: bestDir, confidence: total > 0 ? best / total : 0 };
+  }
+
+  function simulateFlyFuture(state, steps) {
+    const fly = state.fly;
+    if (!fly) return fly;
+    let pos = { x: fly.x, y: fly.y };
+
+    let lastDir = isDirection(state.flyMovedDir) ? state.flyMovedDir : state.flyLearn?.lastDir;
+    let nextDir = isDirection(state.queuedFlyDirection) ? state.queuedFlyDirection : null;
+
+    for (let i = 0; i < steps; i++) {
+      if (!nextDir && isDirection(lastDir)) {
+        const pred = predictFlyDirection(state.flyLearn, lastDir);
+        nextDir = pred?.dir || null;
+      }
+      if (!isDirection(nextDir)) break;
+
+      const cand = movePoint(pos, nextDir);
+      if (outOfBounds(cand, state.rows, state.cols)) break;
+      if (hasWebAt(state.webs, cand)) break;
+
+      pos = cand;
+      lastDir = nextDir;
+      nextDir = null;
+    }
+
+    return pos;
+  }
+
+  function chooseChaserStep(from, target, rows, cols, blocked, rng = Math.random) {
+    let bestDist = Number.POSITIVE_INFINITY;
+    const best = [];
+
+    for (const dir of AI_DIR_ORDER) {
+      const next = movePoint(from, dir);
+      if (outOfBounds(next, rows, cols)) continue;
+      if (blocked && blocked.has(toIndex(next, cols))) continue;
+      const d = manhattan(next, target);
+      if (d < bestDist) {
+        bestDist = d;
+        best.length = 0;
+        best.push(next);
+      } else if (d === bestDist) {
+        best.push(next);
+      }
+    }
+
+    if (best.length === 0) return from;
+    if (best.length === 1) return best[0];
+    return best[randomInt(rng, best.length)];
+  }
+
+  function lineCells(a, b) {
+    const cells = [];
+    if (a.x === b.x) {
+      const step = a.y < b.y ? 1 : -1;
+      for (let y = a.y + step; y !== b.y; y += step) cells.push({ x: a.x, y });
+      return cells;
+    }
+    if (a.y === b.y) {
+      const step = a.x < b.x ? 1 : -1;
+      for (let x = a.x + step; x !== b.x; x += step) cells.push({ x, y: a.y });
+      return cells;
+    }
+    return cells;
+  }
+
+  function hasWebAt(webs, p) {
+    for (const w of webs) {
+      if (w.ttlTicks > 0 && w.x === p.x && w.y === p.y) return true;
+    }
+    return false;
+  }
+
+  function decayWebs(webs) {
+    if (!Array.isArray(webs) || webs.length === 0) return [];
+    const next = [];
+    for (const w of webs) {
+      const ttlTicks = w.ttlTicks - 1;
+      if (ttlTicks > 0) next.push({ x: w.x, y: w.y, ttlTicks });
+    }
+    return next;
+  }
+
+  function removeWebAt(webs, p) {
+    if (!Array.isArray(webs) || webs.length === 0) return webs || [];
+    const next = [];
+    for (const w of webs) {
+      if (w.x === p.x && w.y === p.y) continue;
+      next.push(w);
+    }
+    return next;
+  }
+
+  function decayBeam(beam) {
+    if (!beam || typeof beam.ttlTicks !== "number") return null;
+    const ttlTicks = beam.ttlTicks - 1;
+    if (ttlTicks <= 0) return null;
+    return { from: beam.from, to: beam.to, ttlTicks };
+  }
+
+  function decaySpiderlings(spiderlings, dtMs) {
+    if (!Array.isArray(spiderlings) || spiderlings.length === 0) return [];
+    const next = [];
+    for (const s of spiderlings) {
+      const ttlMs = (s.ttlMs || 0) - dtMs;
+      if (ttlMs > 0) next.push({ x: s.x, y: s.y, ttlMs });
+    }
+    return next;
+  }
+
+  function placeSpiderlings(state, rng, count) {
+    const rows = state.rows;
+    const cols = state.cols;
+    const occupied = new Set();
+    for (const p of state.spider) occupied.add(toIndex(p, cols));
+    if (state.fly) occupied.add(toIndex(state.fly, cols));
+    for (const w of state.webs) occupied.add(toIndex(w, cols));
+    for (const s of state.spiderlings || []) occupied.add(toIndex(s, cols));
+
+    const empty = [];
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const idx = y * cols + x;
+        if (!occupied.has(idx)) empty.push({ x, y });
+      }
+    }
+
+    if (empty.length === 0) return [];
+    const next = [];
+    let n = count;
+    while (n > 0 && empty.length > 0) {
+      const i = randomInt(rng, empty.length);
+      const p = empty.splice(i, 1)[0];
+      next.push({ x: p.x, y: p.y, ttlMs: state.params.offspringTtlMs });
+      n--;
+    }
+    return next;
+  }
+
+  function moveSpiderlings(spiderlings, target, rows, cols, blockedBase, rng) {
+    if (!Array.isArray(spiderlings) || spiderlings.length === 0) return spiderlings || [];
+    const next = [];
+    const blocked = new Set(blockedBase || []);
+
+    // Prevent spiderlings from stacking on each other.
+    for (const s of spiderlings) blocked.add(toIndex(s, cols));
+
+    // Move deterministically in array order; later spiderlings cannot move into earlier ones.
+    for (const s of spiderlings) {
+      blocked.delete(toIndex(s, cols));
+      const moved = chooseChaserStep({ x: s.x, y: s.y }, target, rows, cols, blocked, rng);
+      blocked.add(toIndex(moved, cols));
+      next.push({ x: moved.x, y: moved.y, ttlMs: s.ttlMs });
+    }
+
+    return next;
+  }
+
+  function canShootWeb(state) {
+    return state.webCooldownTicks <= 0;
+  }
+
+  function tryShootWeb(state) {
+    // Only shoot if aligned with fly and clear path (no spider segments between).
+    const head = state.spider[0];
+    const fly = state.fly;
+    if (!fly) return null;
+    if (head.x !== fly.x && head.y !== fly.y) return null;
+
+    const between = lineCells(head, fly);
+    if (between.length === 0) {
+      // If adjacent, try placing a web just beyond the fly (still feels like a "shot" without insta-killing).
+      const dx = Math.sign(fly.x - head.x);
+      const dy = Math.sign(fly.y - head.y);
+      const candidate = { x: fly.x + dx, y: fly.y + dy };
+      if (outOfBounds(candidate, state.rows, state.cols)) return null;
+
+      const spiderOccupied = new Set();
+      for (const p of state.spider) spiderOccupied.add(toIndex(p, state.cols));
+      if (spiderOccupied.has(toIndex(candidate, state.cols))) return null;
+      if (hasWebAt(state.webs, candidate)) return null;
+
+      return candidate;
+    }
+
+    const spiderOccupied = new Set();
+    for (const p of state.spider) spiderOccupied.add(toIndex(p, state.cols));
+
+    for (const c of between) {
+      if (spiderOccupied.has(toIndex(c, state.cols))) return null;
+    }
+
+    // Cap range: place the web within WEB_MAX_RANGE_BLOCKS of the spider head.
+    const dx = Math.sign(fly.x - head.x);
+    const dy = Math.sign(fly.y - head.y);
+
+    const distToFly = manhattan(head, fly);
+    const dist = Math.min(WEB_MAX_RANGE_BLOCKS, Math.max(1, distToFly - 1));
+    const candidate = { x: head.x + dx * dist, y: head.y + dy * dist };
+
+    if (outOfBounds(candidate, state.rows, state.cols)) return null;
+    if (spiderOccupied.has(toIndex(candidate, state.cols))) return null;
+    if (samePoint(candidate, fly)) return null;
+    return candidate;
+  }
+
+  function placeFly(state, rng) {
+    const rows = state.rows;
+    const cols = state.cols;
+    const occupied = new Set();
+    for (const p of state.spider) occupied.add(toIndex(p, cols));
+
+    const empty = [];
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const idx = y * cols + x;
+        if (!occupied.has(idx)) empty.push({ x, y });
+      }
+    }
+
+    if (empty.length === 0) return null;
+    return empty[randomInt(rng, empty.length)];
+  }
+
+  function centerPoint(cols, rows) {
+    return { x: Math.floor(cols / 2), y: Math.floor(rows / 2) };
+  }
+
+  function pointInCenterZone(p, cols, rows) {
+    const cx = Math.floor(cols / 2);
+    const cy = Math.floor(rows / 2);
+    const r = 3; // 7x7-ish "center area"
+    return Math.abs(p.x - cx) <= r && Math.abs(p.y - cy) <= r;
+  }
+
+  function chooseSpiderStart(cols, rows, rng, avoidPoint) {
+    const candidates = [];
+    for (let y = 0; y < rows; y++) {
+      for (let headX = 2; headX < cols; headX++) {
+        const segs = [
+          { x: headX, y },
+          { x: headX - 1, y },
+          { x: headX - 2, y },
+        ];
+
+        let ok = true;
+        for (const p of segs) {
+          if (outOfBounds(p, rows, cols) || pointInCenterZone(p, cols, rows)) {
+            ok = false;
+            break;
+          }
+          if (avoidPoint && samePoint(p, avoidPoint)) {
+            ok = false;
+            break;
+          }
+        }
+        if (ok) candidates.push(segs);
+      }
+    }
+
+    if (candidates.length === 0) return null;
+    return candidates[randomInt(rng, candidates.length)];
+  }
+
+  function chooseAiDirection(state, rng = Math.random) {
+    const current = state.spiderDirection;
+    const head = state.spider[0];
+    const bodyToCheck = state.spider.length > 1 ? state.spider.slice(0, -1) : [];
+
+      let target = state.fly;
+      if (isDirection(state.queuedFlyDirection) && state.fly) {
+        const predicted = movePoint(state.fly, state.queuedFlyDirection);
+        if (!outOfBounds(predicted, state.rows, state.cols) && !hasWebAt(state.webs, predicted)) {
+          target = predicted;
+        }
+      }
+      // Learning / cut-off: gradually shift from "chase" to "intercept" over time.
+      const elapsedMs = state.elapsedMs || 0;
+      const learnFactor = clamp01(elapsedMs / LEARN_AFTER_MS); // 0..1 over first 120s
+      const horizon = 1 + Math.floor(learnFactor * 4); // 1..5 cells ahead
+      const intercept = simulateFlyFuture(state, horizon);
+
+      let bestDist = Number.POSITIVE_INFINITY;
+      const bestDirs = [];
+
+    for (const dir of AI_DIR_ORDER) {
+      if (state.spider.length > 1 && isOpposite(current, dir)) continue;
+
+      const nextHead = movePoint(head, dir);
+      if (outOfBounds(nextHead, state.rows, state.cols)) continue;
+
+      let hitsBody = false;
+      for (const p of bodyToCheck) {
+        if (samePoint(p, nextHead)) {
+          hitsBody = true;
+          break;
+        }
+      }
+      if (hitsBody) continue;
+      if (hasWebAt(state.webs, nextHead)) continue;
+      for (const s of state.spiderlings || []) {
+        if (samePoint(s, nextHead)) {
+          hitsBody = true;
+          break;
+        }
+      }
+      if (hitsBody) continue;
+
+        const chaseDist = manhattan(nextHead, target);
+        const interceptDist = intercept ? manhattan(nextHead, intercept) : chaseDist;
+        // As learnFactor increases, "intercept" dominates, creating a cut-off feeling.
+        const dist = chaseDist * (1.0 - learnFactor * 0.45) + interceptDist * (0.55 + learnFactor * 0.9);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestDirs.length = 0;
+          bestDirs.push(dir);
+        } else if (dist === bestDist) {
+        bestDirs.push(dir);
+      }
+    }
+
+    if (bestDirs.length === 0) return isDirection(current) ? current : "right";
+    if (bestDirs.length === 1) return bestDirs[0];
+    return bestDirs[randomInt(rng, bestDirs.length)];
+  }
+
+  function createInitialState(config, rng = Math.random) {
+    const { rows, cols } = normalizeConfig(config);
+    const params = paramsForDifficulty(config?.difficulty);
+
+    const fly = centerPoint(cols, rows);
+    const seededSpider = chooseSpiderStart(cols, rows, rng, fly);
+    const spider =
+      seededSpider ||
+      (function fallbackSpider() {
+        const flyX = Math.floor(cols / 2);
+        const headX = Math.min(cols - 1, Math.max(2, flyX + 2));
+        const headY = Math.floor(rows / 2);
+        return [
+          { x: headX, y: headY },
+          { x: headX - 1, y: headY },
+          { x: headX - 2, y: headY },
+        ];
+      })();
+
+      const base = {
+        rows,
+        cols,
+        spider,
+        spiderDirection: "right",
+        queuedFlyDirection: null,
+        fly: null,
+      scoreTicks: 0,
+      ageTicks: 0,
+      elapsedMs: 0,
+      nextOffspringMs: params.offspringEveryMs,
+      growthRemaining: 0,
+      webs: [],
+      webBeam: null,
+      webCooldownTicks: 0,
+      lastWebShot: null,
+      webShotSeq: 0,
+      spiderlings: [],
+      flyLearn: createFlyLearnState(),
+      flyMovedDir: null,
+      flyStunTicks: 0,
+      params,
+      status: STATUS.playing,
+    };
+
+    return { ...base, fly };
+  }
+
+  function reduceState(state, action, rng = Math.random) {
+    if (!state || !action || typeof action.type !== "string") return state;
+
+    switch (action.type) {
+      case "flyDirection": {
+        if (state.status === STATUS.gameover) return state;
+        if (!isDirection(action.direction)) return state;
+        if (state.queuedFlyDirection === action.direction) return state;
+        return { ...state, queuedFlyDirection: action.direction };
+      }
+
+      case "togglePause": {
+        if (state.status === STATUS.gameover) return state;
+        const nextStatus = state.status === STATUS.paused ? STATUS.playing : STATUS.paused;
+        return { ...state, status: nextStatus };
+      }
+
+      case "restart": {
+        return createInitialState({ rows: state.rows, cols: state.cols, difficulty: state.params?.difficulty }, rng);
+      }
+
+      case "tick": {
+        const dtMs =
+          typeof action.dtMs === "number" && Number.isFinite(action.dtMs) && action.dtMs > 0
+            ? action.dtMs
+            : 120;
+
+        // Even after game-over, allow timed elements to decay so tests and state stay consistent.
+        if (state.status !== STATUS.playing) {
+          return {
+            ...state,
+            webs: decayWebs(state.webs),
+            webBeam: decayBeam(state.webBeam),
+            spiderlings: decaySpiderlings(state.spiderlings, dtMs),
+          };
+        }
+
+        if (!state.fly) return { ...state, status: STATUS.gameover };
+
+        const params = state.params || paramsForDifficulty("normal");
+        const ageTicks = (state.ageTicks || 0) + 1;
+        const baseGrowthRemaining = state.growthRemaining || 0;
+        const growthRemaining = ageTicks % params.growEveryTicks === 0 ? baseGrowthRemaining + 1 : baseGrowthRemaining;
+
+        const webs = decayWebs(state.webs);
+        const webBeam = decayBeam(state.webBeam);
+        const webCooldownTicks = Math.max(0, (state.webCooldownTicks || 0) - 1);
+        const spiderlings = decaySpiderlings(state.spiderlings, dtMs);
+        const flyStunTicks = Math.max(0, (state.flyStunTicks || 0) - 1);
+
+        let elapsedMs = (state.elapsedMs || 0) + dtMs;
+        let nextOffspringMs =
+          typeof state.nextOffspringMs === "number" && Number.isFinite(state.nextOffspringMs) && state.nextOffspringMs > 0
+            ? state.nextOffspringMs
+            : params.offspringEveryMs;
+        let nextSpiderlings = spiderlings;
+        while (elapsedMs >= nextOffspringMs) {
+          nextSpiderlings = nextSpiderlings.concat(
+            placeSpiderlings({ ...state, webs, spiderlings: nextSpiderlings, params }, rng, params.offspringCount),
+          );
+          nextOffspringMs += params.offspringEveryMs;
+        }
+
+        // 1) Fly moves first (player-controlled).
+        let nextFly = state.fly;
+        let flyMovedDir = null;
+        if (flyStunTicks <= 0 && isDirection(state.queuedFlyDirection)) {
+          const candidate = movePoint(state.fly, state.queuedFlyDirection);
+          if (!outOfBounds(candidate, state.rows, state.cols)) {
+            nextFly = candidate;
+            flyMovedDir = state.queuedFlyDirection;
+          }
+        }
+        const flyLearn = updateFlyLearn(state.flyLearn, flyMovedDir);
+
+          for (const p of state.spider) {
+            if (samePoint(p, nextFly)) return { ...state, fly: nextFly, status: STATUS.gameover };
+          }
+          for (const s of nextSpiderlings) {
+            if (samePoint(s, nextFly)) {
+              return {
+                ...state,
+                fly: nextFly,
+                webs,
+                spiderlings: nextSpiderlings,
+                flyLearn,
+                flyMovedDir,
+                elapsedMs,
+                nextOffspringMs,
+                webCooldownTicks,
+                ageTicks,
+                growthRemaining,
+                status: STATUS.gameover,
+              };
+            }
+          }
+        let nextWebsAfterHit = webs;
+        let nextFlyStunTicks = flyStunTicks;
+        if (hasWebAt(webs, nextFly)) {
+          // Webbing is sticky (slows you) rather than instantly killing you.
+          nextWebsAfterHit = removeWebAt(webs, nextFly);
+          nextFlyStunTicks = Math.max(nextFlyStunTicks, 2);
+        }
+
+        // 2) Spiderlings chase the fly.
+        const blockedForSpiderlings = new Set();
+        for (const p of state.spider) blockedForSpiderlings.add(toIndex(p, state.cols));
+        for (const w of nextWebsAfterHit) blockedForSpiderlings.add(toIndex(w, state.cols));
+
+        // Allow moving into each other's old positions by clearing as we go in moveSpiderlings().
+        let chasedSpiderlings = moveSpiderlings(nextSpiderlings, nextFly, state.rows, state.cols, blockedForSpiderlings, rng);
+        for (const s of chasedSpiderlings) {
+          if (samePoint(s, nextFly)) {
+            return {
+              ...state,
+              fly: nextFly,
+              webs,
+              spiderlings: chasedSpiderlings,
+              flyLearn,
+              flyMovedDir,
+              elapsedMs,
+              nextOffspringMs,
+              webCooldownTicks,
+              ageTicks,
+              growthRemaining,
+              status: STATUS.gameover,
+            };
+          }
+        }
+
+        // 3) AI may shoot a web trap if aligned.
+        let lastWebShot = null;
+        let nextWebBeam = webBeam;
+        let webShotSeq = state.webShotSeq || 0;
+        let nextWebCooldown = webCooldownTicks;
+        let nextWebs = nextWebsAfterHit;
+        if (canShootWeb({ ...state, webCooldownTicks }) && nextFly) {
+          const shotCell = tryShootWeb({ ...state, fly: nextFly, webs: nextWebsAfterHit });
+          if (shotCell && !hasWebAt(nextWebsAfterHit, shotCell)) {
+            // Shoot "further": lay a short strip of web traps in the shot direction (including beyond the fly if possible).
+            const head = state.spider[0];
+            const dx = Math.sign(shotCell.x - head.x);
+            const dy = Math.sign(shotCell.y - head.y);
+
+            const toAdd = [];
+            let stepIndex = 0;
+            while (toAdd.length < params.webStripLen && stepIndex < params.webStripLen + 2) {
+              const p = { x: shotCell.x + dx * stepIndex, y: shotCell.y + dy * stepIndex };
+              stepIndex++;
+              if (outOfBounds(p, state.rows, state.cols)) break;
+              if (manhattan(head, p) > WEB_MAX_RANGE_BLOCKS) break;
+              let hitsSpider = false;
+              for (const sp of state.spider) {
+                if (samePoint(sp, p)) {
+                  hitsSpider = true;
+                  break;
+                }
+              }
+              if (hitsSpider) break;
+              if (nextFly && samePoint(nextFly, p)) break;
+              toAdd.push(p);
+            }
+
+            nextWebs = nextWebsAfterHit.concat(toAdd.map((p) => ({ x: p.x, y: p.y, ttlTicks: params.webTtlTicks })));
+            nextWebCooldown = params.webCooldownTicks;
+            lastWebShot = { x: shotCell.x, y: shotCell.y };
+            webShotSeq = webShotSeq + 1;
+            const beamTo = toAdd.length > 0 ? toAdd[toAdd.length - 1] : shotCell;
+            nextWebBeam = {
+              from: { x: state.spider[0].x, y: state.spider[0].y },
+              to: { x: beamTo.x, y: beamTo.y },
+              ttlTicks: WEB_BEAM_TTL_TICKS,
+            };
+          }
+        }
+
+        // 4) AI picks spider direction based on the (potentially) moved fly.
+        const aiDir = chooseAiDirection(
+          { ...state, fly: nextFly, webs: nextWebs, spiderlings: chasedSpiderlings, flyLearn, flyMovedDir, elapsedMs },
+          rng,
+        );
+        const head = state.spider[0];
+        const didShoot = !!lastWebShot;
+        const nextHead = didShoot ? head : movePoint(head, aiDir);
+
+        if (outOfBounds(nextHead, state.rows, state.cols)) {
+          return {
+            ...state,
+            fly: nextFly,
+            spiderDirection: aiDir,
+            webs: nextWebs,
+            webBeam: nextWebBeam,
+            webCooldownTicks: nextWebCooldown,
+            lastWebShot,
+            webShotSeq,
+            spiderlings: chasedSpiderlings,
+            flyLearn,
+            flyMovedDir,
+            flyStunTicks: nextFlyStunTicks,
+            elapsedMs,
+            nextOffspringMs,
+            ageTicks,
+            growthRemaining,
+            status: STATUS.gameover,
+          };
+        }
+        if (hasWebAt(nextWebs, nextHead)) {
+          return {
+            ...state,
+            fly: nextFly,
+            spiderDirection: aiDir,
+            webs: nextWebs,
+            webBeam: nextWebBeam,
+            webCooldownTicks: nextWebCooldown,
+            lastWebShot,
+            webShotSeq,
+            spiderlings: chasedSpiderlings,
+            flyLearn,
+            flyMovedDir,
+            flyStunTicks: nextFlyStunTicks,
+            elapsedMs,
+            nextOffspringMs,
+            ageTicks,
+            growthRemaining,
+            status: STATUS.gameover,
+          };
+        }
+
+        const bodyToCheck = state.spider.length > 1 ? state.spider.slice(0, -1) : [];
+        for (const p of bodyToCheck) {
+          if (samePoint(p, nextHead)) {
+            return {
+              ...state,
+              fly: nextFly,
+              spiderDirection: aiDir,
+              webs: nextWebs,
+              webBeam: nextWebBeam,
+              webCooldownTicks: nextWebCooldown,
+              lastWebShot,
+              webShotSeq,
+              spiderlings: chasedSpiderlings,
+              flyLearn,
+              flyMovedDir,
+              flyStunTicks: nextFlyStunTicks,
+              elapsedMs,
+              nextOffspringMs,
+              ageTicks,
+              growthRemaining,
+              status: STATUS.gameover,
+            };
+          }
+        }
+
+        const willGrow = growthRemaining > 0;
+        const trimmed = state.spider.length > 1 ? state.spider.slice(0, -1) : [];
+        const actuallyGrew = !didShoot && willGrow;
+        const nextSpider = didShoot ? state.spider : actuallyGrew ? [nextHead, ...state.spider] : [nextHead, ...trimmed];
+        const nextGrowthRemaining = actuallyGrew ? growthRemaining - 1 : growthRemaining;
+
+        if (samePoint(nextHead, nextFly)) {
+          return {
+            ...state,
+            fly: nextFly,
+            spider: nextSpider,
+            spiderDirection: aiDir,
+            webs: nextWebs,
+            webBeam: nextWebBeam,
+            webCooldownTicks: nextWebCooldown,
+            lastWebShot,
+            webShotSeq,
+            spiderlings: chasedSpiderlings,
+            flyLearn,
+            flyMovedDir,
+            flyStunTicks: nextFlyStunTicks,
+            elapsedMs,
+            nextOffspringMs,
+            ageTicks,
+            growthRemaining: nextGrowthRemaining,
+            status: STATUS.gameover,
+          };
+        }
+
+        return {
+          ...state,
+          fly: nextFly,
+          spider: nextSpider,
+          spiderDirection: aiDir,
+          webs: nextWebs,
+          webBeam: nextWebBeam,
+          webCooldownTicks: nextWebCooldown,
+          lastWebShot,
+          webShotSeq,
+          spiderlings: chasedSpiderlings,
+          flyLearn,
+          flyMovedDir,
+          flyStunTicks: nextFlyStunTicks,
+          elapsedMs,
+          nextOffspringMs,
+          scoreTicks: (state.scoreTicks || 0) + 1,
+          ageTicks,
+          growthRemaining: nextGrowthRemaining,
+          params,
+        };
+      }
+
+      default:
+        return state;
+    }
+  }
+
+  global.SnakeLogic = Object.freeze({
+    STATUS,
+    createRng,
+    createInitialState,
+    reduceState,
+    placeFly,
+    chooseAiDirection,
+    hasWebAt,
+    placeSpiderlings,
+    predictFlyDirection,
+    samePoint,
+    toIndex,
+    isOpposite,
+  });
+})(typeof window !== "undefined" ? window : globalThis);
+  function paramsForDifficulty(difficulty) {
+    const d = difficulty === "easy" || difficulty === "hard" ? difficulty : "normal";
+    if (d === "easy") {
+      return {
+        difficulty: "easy",
+        webTtlTicks: 40,
+        webCooldownTicks: 10,
+        webStripLen: 1,
+        growEveryTicks: 18,
+        offspringEveryMs: 45000,
+        offspringTtlMs: 9000,
+        offspringCount: 1,
+      };
+    }
+    if (d === "hard") {
+      return {
+        difficulty: "hard",
+        webTtlTicks: 82,
+        webCooldownTicks: 3,
+        webStripLen: 1,
+        growEveryTicks: 8,
+        offspringEveryMs: 18000,
+        offspringTtlMs: 13000,
+        offspringCount: 4,
+      };
+    }
+    return {
+      difficulty: "normal",
+      webTtlTicks: 48,
+      webCooldownTicks: 7,
+      webStripLen: 1,
+      growEveryTicks: 16,
+      offspringEveryMs: 34000,
+      offspringTtlMs: 9500,
+      offspringCount: 2,
+    };
+  }
+
+</script>
+    <script>
+(function attachSpiderAudio(global) {
+  "use strict";
+
+  function clamp01(v) {
+    if (typeof v !== "number" || !Number.isFinite(v)) return 0;
+    if (v < 0) return 0;
+    if (v > 1) return 1;
+    return v;
+  }
+
+  function create() {
+    let ctx = null;
+    let master = null;
+    let enabled = false;
+
+    let musicGain = null;
+    let fxGain = null;
+
+    let tempoBpm = 96;
+    let threat = 0;
+    let survivalSeconds = 0;
+    let musicTimer = null;
+    let step = 0;
+    let barStep = 0;
+
+    function ensure() {
+      if (ctx) return;
+      const AudioContext = global.AudioContext || global.webkitAudioContext;
+      if (!AudioContext) return;
+      ctx = new AudioContext();
+
+      master = ctx.createGain();
+      master.gain.value = 0.0;
+      master.connect(ctx.destination);
+
+      musicGain = ctx.createGain();
+      musicGain.gain.value = 0.42;
+      musicGain.connect(master);
+
+      fxGain = ctx.createGain();
+      fxGain.gain.value = 0.75;
+      fxGain.connect(master);
+    }
+
+    function arm() {
+      ensure();
+      if (!ctx) return;
+      if (ctx.state === "suspended") ctx.resume();
+      if (enabled) master.gain.setTargetAtTime(1.0, ctx.currentTime, 0.02);
+      if (enabled) startMusic();
+    }
+
+    function setEnabled(next) {
+      enabled = !!next;
+      ensure();
+      if (!ctx) return;
+      if (enabled) {
+        master.gain.setTargetAtTime(1.0, ctx.currentTime, 0.02);
+        startMusic();
+      } else {
+        master.gain.setTargetAtTime(0.0, ctx.currentTime, 0.02);
+        stopMusic();
+      }
+    }
+
+    function isEnabled() {
+      return enabled;
+    }
+
+    function setThreatLevel(level) {
+      threat = clamp01(level);
+      // final tempo is computed in computeTempo()
+      ensure();
+      if (ctx && musicGain) {
+        const target = Math.min(0.9, 0.44 + threat * 0.26); // louder when closer (cap to reduce clipping)
+        musicGain.gain.setTargetAtTime(target, ctx.currentTime, 0.05);
+      }
+    }
+
+    function setSurvivalSeconds(seconds) {
+      if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) return;
+      survivalSeconds = seconds;
+    }
+
+    function computeTempo() {
+      // Threat ramps quickly; survival ramps slowly over time, capped.
+      const survivalRamp = Math.min(1, survivalSeconds / 75); // reaches max around ~75s
+      tempoBpm = 98 + threat * 72 + survivalRamp * 42; // ~98..212
+      if (tempoBpm > 212) tempoBpm = 212;
+      if (tempoBpm < 88) tempoBpm = 88;
+      return tempoBpm;
+    }
+
+    function now() {
+      return ctx ? ctx.currentTime : 0;
+    }
+
+    function playTone({ frequency, duration, type = "sine", gain = 0.25, when = 0, detune = 0 }) {
+      if (!ctx || !enabled) return;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = frequency;
+      osc.detune.value = detune;
+      g.gain.value = 0.0001;
+      osc.connect(g);
+      g.connect(fxGain);
+
+      const t0 = now() + when;
+      const t1 = t0 + duration;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain, t0 + Math.min(0.02, duration / 4));
+      g.gain.exponentialRampToValueAtTime(0.0001, t1);
+
+      osc.start(t0);
+      osc.stop(t1 + 0.02);
+    }
+
+    function playNoise({ duration, gain = 0.2, when = 0, highpassHz = 600 }) {
+      if (!ctx || !enabled) return;
+      const bufferSize = Math.floor(ctx.sampleRate * duration);
+      const buffer = ctx.createBuffer(1, Math.max(1, bufferSize), ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.55;
+
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = highpassHz;
+
+      const g = ctx.createGain();
+      g.gain.value = 0.0001;
+
+      src.connect(hp);
+      hp.connect(g);
+      g.connect(fxGain);
+
+      const t0 = now() + when;
+      const t1 = t0 + duration;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain, t0 + Math.min(0.02, duration / 4));
+      g.gain.exponentialRampToValueAtTime(0.0001, t1);
+
+      src.start(t0);
+      src.stop(t1 + 0.02);
+    }
+
+    function playWebShot() {
+      // Quick "thwip": noisy burst + pitchy click.
+      playNoise({ duration: 0.1, gain: 0.26, highpassHz: 950 });
+      playTone({ frequency: 980, duration: 0.06, type: "triangle", gain: 0.18, detune: -35 });
+      playTone({ frequency: 620, duration: 0.08, type: "triangle", gain: 0.16, when: 0.01, detune: 25 });
+
+      if (!ctx || !enabled) return;
+      // Pitch slide for a more recognizable "web shoot" character.
+      const t0 = now();
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(1200, t0);
+      osc.frequency.exponentialRampToValueAtTime(320, t0 + 0.09);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+      osc.connect(g);
+      g.connect(fxGain);
+      osc.start(t0);
+      osc.stop(t0 + 0.14);
+    }
+
+    function playDeath() {
+      // Sad downward interval + soft low boom.
+      playTone({ frequency: 392, duration: 0.22, type: "sine", gain: 0.18 });
+      playTone({ frequency: 311, duration: 0.28, type: "sine", gain: 0.16, when: 0.08 });
+      playTone({ frequency: 196, duration: 0.34, type: "sine", gain: 0.13, when: 0.18 });
+      playNoise({ duration: 0.18, gain: 0.12, when: 0.02, highpassHz: 180 });
+    }
+
+    function playKick(when = 0, intensity = 1) {
+      if (!ctx || !enabled) return;
+      const t0 = now() + when;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(90, t0);
+      osc.frequency.exponentialRampToValueAtTime(40, t0 + 0.09);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.38 * intensity, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+      osc.connect(g);
+      g.connect(musicGain);
+      osc.start(t0);
+      osc.stop(t0 + 0.18);
+    }
+
+    function playHit(when = 0, intensity = 1) {
+      playNoise({ duration: 0.05, gain: 0.12 * intensity, when, highpassHz: 1200 });
+      playTone({ frequency: 220, duration: 0.05, type: "triangle", gain: 0.06 * intensity, when });
+    }
+
+    function playChord(when = 0, rootHz = 196, intensity = 1) {
+      if (!ctx || !enabled) return;
+      const t0 = now() + when;
+      const chord = [0, 3, 7]; // minor triad
+      const chordGain = 0.06 + threat * 0.05 + intensity * 0.02;
+      const cutoff = 520 + threat * 1400;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(cutoff, t0);
+      filter.frequency.exponentialRampToValueAtTime(cutoff * 1.25, t0 + 0.08);
+
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(chordGain, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.35);
+      filter.connect(g);
+      g.connect(musicGain);
+
+      for (const semi of chord) {
+        const o = ctx.createOscillator();
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(rootHz * Math.pow(2, semi / 12), t0);
+        o.detune.value = (Math.random() * 12 - 6) * (0.2 + threat);
+        o.connect(filter);
+        o.start(t0);
+        o.stop(t0 + 0.38);
+      }
+    }
+
+    function playOstinato(when = 0, baseHz = 392, intensity = 1) {
+      if (!ctx || !enabled) return;
+      const t0 = now() + when;
+      const o = ctx.createOscillator();
+      o.type = "square";
+      o.frequency.setValueAtTime(baseHz, t0);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.045 * intensity, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.08);
+      o.connect(g);
+      g.connect(musicGain);
+      o.start(t0);
+      o.stop(t0 + 0.1);
+    }
+
+    function scheduleBeat() {
+      if (!ctx || !enabled) return;
+      const bpm = computeTempo();
+      const beatSec = 60 / bpm;
+      const t = ctx.currentTime + 0.01;
+
+      // Dramatic boss-y loop: pulse + chord stabs + percussion.
+      // Not based on any copyrighted score; purely procedural.
+      const progRoots = [196, 174.61, 220, 164.81]; // G, F, A, E (approx)
+      const barRoot = progRoots[barStep % progRoots.length] * (Math.random() < 0.15 ? 2 : 1);
+      const intensity = 0.7 + threat * 0.5;
+
+      // Percussion emphasis grows over survival and threat.
+      playKick(0, 0.85 + threat * 0.35);
+      if (step % 2 === 0) playHit(0.02, 0.5 + threat * 0.6);
+      if ((threat > 0.5 || survivalSeconds > 20) && Math.random() < 0.35) {
+        playHit(0.06, 0.6 + threat * 0.8);
+      }
+
+      // Chord stabs every 4 beats.
+      if (step % 4 === 0) playChord(0, barRoot * (Math.random() < 0.25 ? 0.5 : 1), intensity);
+      if (threat > 0.35 || survivalSeconds > 18) {
+        const ost = barRoot * (2 + (step % 2)) * (Math.random() < 0.2 ? 1.5 : 1);
+        playOstinato(0.01, ost, 0.7 + threat * 0.7);
+      }
+
+      step++;
+      if (step % 16 === 0) barStep++;
+      musicTimer = global.setTimeout(scheduleBeat, Math.max(40, beatSec * 1000));
+    }
+
+    function startMusic() {
+      if (!ctx || !enabled) return;
+      if (musicTimer !== null) return;
+      scheduleBeat();
+    }
+
+    function stopMusic() {
+      if (musicTimer === null) return;
+      global.clearTimeout(musicTimer);
+      musicTimer = null;
+      step = 0;
+    }
+
+    return Object.freeze({
+      arm,
+      setEnabled,
+      isEnabled,
+      setThreatLevel,
+      setSurvivalSeconds,
+      playWebShot,
+      playDeath,
+    });
+  }
+
+  global.SpiderAudio = Object.freeze({ create });
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+    <script>
+(function runSpiderUi() {
+  "use strict";
+
+  const logic = window.SnakeLogic;
+  if (!logic) throw new Error("SnakeLogic not found. Did src/spider-logic.js load?");
+
+  const config = { rows: 20, cols: 20 };
+  const url = new URL(window.location.href);
+  const seedParam = url.searchParams.get("seed");
+  const seed = seedParam && /^\d+$/.test(seedParam) ? Number(seedParam) : Date.now();
+  let rng = logic.createRng(seed);
+
+  const DIFF_KEY = "spider_difficulty";
+  let difficulty = "normal";
+  try {
+    const raw = window.localStorage?.getItem(DIFF_KEY);
+    if (raw === "easy" || raw === "normal" || raw === "hard") difficulty = raw;
+  } catch {
+    // ignore
+  }
+  const diffParam = url.searchParams.get("difficulty");
+  if (diffParam === "easy" || diffParam === "normal" || diffParam === "hard") difficulty = diffParam;
+
+  let state = logic.createInitialState({ ...config, difficulty }, rng);
+
+  const gridEl = document.getElementById("grid");
+  const overlayEl = document.getElementById("overlay");
+  const toastEl = document.getElementById("toast");
+  const scoreEl = document.getElementById("score");
+  const bestEl = document.getElementById("best");
+  const statusEl = document.getElementById("status");
+  const startBtn = document.getElementById("btn-start");
+  const pauseBtn = document.getElementById("btn-pause");
+  const restartBtn = document.getElementById("btn-restart");
+  const soundBtn = document.getElementById("btn-sound");
+  const shareBtn = document.getElementById("btn-share");
+  const difficultyEl = document.getElementById("difficulty");
+
+  if (
+    !gridEl ||
+    !overlayEl ||
+    !toastEl ||
+    !scoreEl ||
+    !bestEl ||
+    !statusEl ||
+    !startBtn ||
+    !pauseBtn ||
+    !restartBtn ||
+    !soundBtn
+  ) {
+    throw new Error("Missing required DOM elements.");
+  }
+  if (!shareBtn) throw new Error("Missing #btn-share element.");
+  if (!difficultyEl) throw new Error("Missing #difficulty element.");
+
+  gridEl.style.setProperty("--cols", String(config.cols));
+
+  const cells = [];
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < config.rows * config.cols; i++) {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    frag.appendChild(cell);
+    cells.push(cell);
+  }
+  gridEl.appendChild(frag);
+
+  let prevSpiderIndices = new Set();
+  let prevFlyIndex = null;
+  let prevWebIndices = new Set();
+  let prevBeamIndices = new Set();
+  let prevSpiderlingIndices = new Set();
+
+  const audio = window.SpiderAudio ? window.SpiderAudio.create() : null;
+  let audioArmed = false;
+  let desiredSoundEnabled = true;
+  soundBtn.textContent = "Sound: On";
+
+  const BEST_KEY = "spider_best_ms";
+  let bestMs = 0;
+  let runMs = 0;
+  let hasStarted = false;
+  try {
+    const raw = window.localStorage?.getItem(BEST_KEY);
+    const n = raw ? Number(raw) : 0;
+    if (Number.isFinite(n) && n > 0) bestMs = n;
+  } catch {
+    bestMs = 0;
+  }
+
+  difficultyEl.value = difficulty;
+
+  function setOverlay(message) {
+    if (message) {
+      overlayEl.textContent = message;
+      overlayEl.hidden = false;
+      return;
+    }
+    overlayEl.textContent = "";
+    overlayEl.hidden = true;
+  }
+
+  let toastTimer = null;
+  function showToast(message) {
+    toastEl.textContent = message;
+    toastEl.hidden = false;
+    if (toastTimer !== null) window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => {
+      toastTimer = null;
+      toastEl.hidden = true;
+      toastEl.textContent = "";
+    }, 1600);
+  }
+
+  function statusLabel(status) {
+    if (!hasStarted) return "Ready";
+    if (status === logic.STATUS.paused) return "Paused";
+    if (status === logic.STATUS.gameover) return "Game Over";
+    return "Playing";
+  }
+
+  function formatMs(ms) {
+    const s = ms / 1000;
+    return `${s.toFixed(1)}s`;
+  }
+
+  function computeThreat() {
+    const head = state.spider?.[0];
+    const fly = state.fly;
+    if (!head || !fly) return 0;
+    const dist = Math.abs(head.x - fly.x) + Math.abs(head.y - fly.y);
+    return 1 - Math.min(1, dist / 18);
+  }
+
+  function updateIntensity() {
+    const t = computeThreat();
+    // Keep early-game readable: minimal shake at the start, then ramp over time.
+    const s = Math.min(1, runMs / 120000); // ramps over ~120s
+    const timeShake = Math.pow(s, 1.35) * 9; // grows non-linearly
+    const threatShake = (t * t) * (1.2 + s * 3.2); // threat matters more later
+    const shake = Math.round(timeShake + threatShake);
+    gridEl.style.setProperty("--shake", `${Math.min(8, shake)}px`);
+    document.body.classList.toggle("intense-shake", shake >= 2 && s > 0.08 && state.status === logic.STATUS.playing);
+  }
+
+  const reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  let spinTimer = null;
+
+  function stopSpinChaos() {
+    if (spinTimer !== null) window.clearTimeout(spinTimer);
+    spinTimer = null;
+  }
+
+  function setSpinVars() {
+    const dir = Math.random() < 0.5 ? "normal" : "reverse";
+    const seconds = 9 + Math.random() * 8; // 9s..17s (faster)
+    document.body.style.setProperty("--web-spin-direction", dir);
+    document.body.style.setProperty("--web-spin-duration", `${seconds.toFixed(1)}s`);
+  }
+
+  function scheduleSpinChaos() {
+    if (spinTimer !== null) return;
+    setSpinVars();
+    const nextMs = 1200 + Math.random() * 2600; // ~1.2s..3.8s
+    spinTimer = window.setTimeout(() => {
+      spinTimer = null;
+      if (!hasStarted) return;
+      if (state.status !== logic.STATUS.playing) return;
+      scheduleSpinChaos();
+    }, nextMs);
+  }
+
+  function startSpinChaos() {
+    if (reduceMotion?.matches) return;
+    document.body.classList.add("web-spin");
+    stopSpinChaos();
+    scheduleSpinChaos();
+  }
+
+  function armAudio() {
+    if (!audio || audioArmed) return;
+    audioArmed = true;
+    audio.arm();
+    audio.setEnabled(desiredSoundEnabled);
+  }
+
+  function render() {
+    for (const idx of prevSpiderIndices) {
+      const cell = cells[idx];
+      cell.classList.remove("spider", "spider-head");
+    }
+    prevSpiderIndices = new Set();
+
+    if (prevFlyIndex !== null) {
+      cells[prevFlyIndex].classList.remove("fly");
+      prevFlyIndex = null;
+    }
+
+    for (const idx of prevWebIndices) {
+      cells[idx].classList.remove("web-trap");
+    }
+    prevWebIndices = new Set();
+
+    for (const idx of prevBeamIndices) {
+      cells[idx].classList.remove("web-beam");
+    }
+    prevBeamIndices = new Set();
+
+    for (const idx of prevSpiderlingIndices) {
+      cells[idx].classList.remove("spiderling");
+    }
+    prevSpiderlingIndices = new Set();
+
+    for (const w of state.webs) {
+      const idx = w.y * state.cols + w.x;
+      prevWebIndices.add(idx);
+      cells[idx].classList.add("web-trap");
+    }
+
+    if (state.webBeam) {
+      const from = state.webBeam.from;
+      const to = state.webBeam.to;
+      if (from && to && (from.x === to.x || from.y === to.y)) {
+        if (from.x === to.x) {
+          const step = from.y < to.y ? 1 : -1;
+          for (let y = from.y + step; y !== to.y; y += step) {
+            const idx = y * state.cols + from.x;
+            prevBeamIndices.add(idx);
+            cells[idx].classList.add("web-beam");
+          }
+        } else {
+          const step = from.x < to.x ? 1 : -1;
+          for (let x = from.x + step; x !== to.x; x += step) {
+            const idx = from.y * state.cols + x;
+            prevBeamIndices.add(idx);
+            cells[idx].classList.add("web-beam");
+          }
+        }
+      }
+    }
+
+    for (const s of state.spiderlings || []) {
+      const idx = s.y * state.cols + s.x;
+      prevSpiderlingIndices.add(idx);
+      cells[idx].classList.add("spiderling");
+    }
+
+    for (let i = 0; i < state.spider.length; i++) {
+      const p = state.spider[i];
+      const idx = p.y * state.cols + p.x;
+      prevSpiderIndices.add(idx);
+      const cell = cells[idx];
+      cell.classList.add("spider");
+      if (i === 0) cell.classList.add("spider-head");
+    }
+
+    if (state.fly) {
+      prevFlyIndex = state.fly.y * state.cols + state.fly.x;
+      cells[prevFlyIndex].classList.add("fly");
+    }
+
+    scoreEl.textContent = formatMs(runMs);
+    bestEl.textContent = formatMs(bestMs);
+    statusEl.textContent = statusLabel(state.status);
+    pauseBtn.textContent = state.status === logic.STATUS.paused ? "Resume" : "Pause";
+    startBtn.disabled = hasStarted && state.status !== logic.STATUS.gameover;
+
+    if (!hasStarted) {
+      setOverlay("You are the fly. Press Start.");
+    } else if (state.status === logic.STATUS.gameover) {
+      setOverlay("Caught. Press Enter or Restart.");
+    } else if (state.status === logic.STATUS.paused) {
+      setOverlay("Paused. Press Space or Resume.");
+    } else {
+      setOverlay("");
+    }
+  }
+
+  const BASE_TICK_MS = 120;
+  let timer = null;
+
+  function stopLoop() {
+    if (timer === null) return;
+    window.clearTimeout(timer);
+    timer = null;
+  }
+
+  function computeTickMs() {
+    const t = computeThreat();
+    const survival = Math.min(1, runMs / 90000);
+    const base = difficulty === "easy" ? 140 : difficulty === "hard" ? 88 : 126;
+    const ms = base - t * 34 - survival * 38;
+    return Math.max(52, Math.floor(ms));
+  }
+
+  function scheduleNextTick() {
+    if (timer !== null) return;
+    const dt = computeTickMs();
+    timer = window.setTimeout(() => {
+      timer = null;
+      if (state.status !== logic.STATUS.playing) return;
+      runMs += dt;
+      dispatch({ type: "tick", dtMs: dt });
+      if (state.status === logic.STATUS.playing) scheduleNextTick();
+    }, dt);
+  }
+
+  function startLoop() {
+    stopLoop();
+    scheduleNextTick();
+  }
+
+  function dispatch(action) {
+    const prevStatus = state.status;
+    const prevWebShotSeq = state.webShotSeq || 0;
+    state = logic.reduceState(state, action, rng);
+    render();
+
+    if (state.status !== logic.STATUS.gameover) document.body.classList.remove("danger-flash");
+
+    if (audio) {
+      audio.setThreatLevel(computeThreat());
+      audio.setSurvivalSeconds(runMs / 1000);
+      if ((state.webShotSeq || 0) !== prevWebShotSeq) audio.playWebShot();
+    }
+    updateIntensity();
+
+    if (prevStatus !== logic.STATUS.gameover && state.status === logic.STATUS.gameover) {
+      stopLoop();
+      stopSpinChaos();
+      document.body.classList.remove("web-spin");
+      if (runMs > bestMs) {
+        bestMs = runMs;
+        try {
+          window.localStorage?.setItem(BEST_KEY, String(bestMs));
+        } catch {
+          // ignore storage errors
+        }
+      }
+      document.body.classList.remove("danger-flash");
+      void document.body.offsetWidth; // restart animation
+      document.body.classList.add("danger-flash");
+      audio?.playDeath();
+      return;
+    }
+
+    if (prevStatus !== state.status) {
+      if (state.status === logic.STATUS.paused) {
+        stopLoop();
+        stopSpinChaos();
+      }
+      if (state.status === logic.STATUS.playing) {
+        scheduleNextTick();
+        startSpinChaos();
+      }
+    }
+  }
+
+  function setDirection(direction) {
+    dispatch({ type: "flyDirection", direction });
+  }
+
+  function startGame() {
+    if (hasStarted && state.status !== logic.STATUS.gameover) return;
+    if (state.status === logic.STATUS.gameover) {
+      runMs = 0;
+      rng = logic.createRng(seed);
+      state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
+      render();
+    }
+    hasStarted = true;
+    startSpinChaos();
+    if (state.status === logic.STATUS.paused) dispatch({ type: "togglePause" });
+    scheduleNextTick();
+  }
+
+  function shareUrl() {
+    const u = new URL(window.location.href);
+    u.searchParams.set("seed", String(seed));
+    u.searchParams.set("difficulty", difficulty);
+    return u.toString();
+  }
+
+  async function onShare() {
+    const shareData = {
+      title: document.title || "Spider vs Fly",
+      text: "Try to survive as the fly. The spider AI chases + shoots webs.",
+      url: shareUrl(),
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch {
+      // user cancelled or share failed; fall back to copy
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareData.url);
+      showToast("Link copied.");
+      return;
+    } catch {
+      // Clipboard may be blocked on file:// or without HTTPS.
+    }
+
+    showToast("Copy link from the address bar.");
+  }
+
+  function onKeyDown(event) {
+    const key = event.key;
+    let dir = null;
+
+    if (key === "ArrowUp" || key === "w" || key === "W") dir = "up";
+    else if (key === "ArrowDown" || key === "s" || key === "S") dir = "down";
+    else if (key === "ArrowLeft" || key === "a" || key === "A") dir = "left";
+    else if (key === "ArrowRight" || key === "d" || key === "D") dir = "right";
+
+    if (dir) {
+      event.preventDefault();
+      armAudio();
+      if (!hasStarted) startGame();
+      setDirection(dir);
+      return;
+    }
+
+    if (key === " " || key === "Spacebar" || key === "p" || key === "P") {
+      event.preventDefault();
+      armAudio();
+      if (!hasStarted) {
+        startGame();
+        return;
+      }
+      dispatch({ type: "togglePause" });
+      return;
+    }
+
+    if (key === "Enter" || key === "r" || key === "R") {
+      event.preventDefault();
+      armAudio();
+      if (!hasStarted) {
+        startGame();
+        return;
+      }
+      runMs = 0;
+      startSpinChaos();
+      rng = logic.createRng(seed);
+      stopLoop();
+      state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
+      render();
+      updateIntensity();
+      scheduleNextTick();
+    }
+  }
+
+  function onPointerDownDir(event) {
+    const dir = event.currentTarget?.dataset?.dir;
+    if (!dir) return;
+    event.preventDefault();
+    armAudio();
+    if (!hasStarted) startGame();
+    setDirection(dir);
+  }
+
+  document.addEventListener("keydown", onKeyDown);
+  startBtn.addEventListener("click", () => {
+    armAudio();
+    startGame();
+  });
+  pauseBtn.addEventListener("click", () => {
+    armAudio();
+    if (!hasStarted) {
+      startGame();
+      return;
+    }
+    dispatch({ type: "togglePause" });
+  });
+  restartBtn.addEventListener("click", () => {
+    armAudio();
+    runMs = 0;
+    hasStarted = true;
+    startSpinChaos();
+    rng = logic.createRng(seed);
+    stopLoop();
+    state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
+    render();
+    updateIntensity();
+    scheduleNextTick();
+  });
+  difficultyEl.addEventListener("change", () => {
+    const v = String(difficultyEl.value || "normal");
+    difficulty = v === "easy" || v === "hard" ? v : "normal";
+    try {
+      window.localStorage?.setItem(DIFF_KEY, difficulty);
+    } catch {
+      // ignore
+    }
+
+    // Apply immediately by restarting the state with new difficulty.
+    rng = logic.createRng(seed);
+    runMs = 0;
+    hasStarted = false;
+    stopLoop();
+    state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
+    render();
+    updateIntensity();
+    document.body.classList.remove("web-spin");
+  });
+  soundBtn.addEventListener("click", () => {
+    if (!audio) return;
+    armAudio();
+    desiredSoundEnabled = audioArmed ? !audio.isEnabled() : !desiredSoundEnabled;
+    if (audioArmed) audio.setEnabled(desiredSoundEnabled);
+    soundBtn.textContent = desiredSoundEnabled ? "Sound: On" : "Sound: Off";
+  });
+  shareBtn.addEventListener("click", () => {
+    armAudio();
+    onShare();
+  });
+
+  for (const btn of document.querySelectorAll("[data-dir]")) {
+    btn.addEventListener("pointerdown", onPointerDownDir);
+    btn.addEventListener("click", (e) => e.preventDefault());
+  }
+
+  render();
+  updateIntensity();
+  // Starting screen: game begins only after Start / first input.
+  stopLoop();
+})();
+
+</script>
+  </body>
+</html>
+

@@ -1,0 +1,84 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta property="og:title" content="Spider vs Fly" />
+    <meta property="og:description" content="A tiny, intense, dependency-free web game: you control the fly; an AI spider chases and shoots webs." />
+    <meta property="og:type" content="website" />
+    <title>Spider vs Fly</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <div>
+          <h1>Spider vs Fly</h1>
+          <p class="help">You are the fly (Arrows/WASD) | The red/blue spider is AI | Space to pause | Enter to restart | Sound is on by default</p>
+          <p class="warning" role="note">
+            <strong>WARNING (photosensitivity):</strong> this game includes flashing red screens, shaking, and a spinning background.
+            If you have photosensitive epilepsy, consider not playing.
+          </p>
+        </div>
+        <div class="hud" aria-label="Score and status">
+          <div class="stat">
+            <span class="label">Survival</span>
+            <span id="score" class="value">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Best</span>
+            <span id="best" class="value">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Status</span>
+            <span id="status" class="value">Playing</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="board" aria-label="Game board">
+        <div id="grid" class="grid" role="application" aria-label="Spider web board"></div>
+        <div id="overlay" class="overlay" aria-live="polite" hidden></div>
+        <div id="toast" class="toast" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+        <div class="buttons">
+          <label class="select" for="difficulty">
+            Difficulty
+            <select id="difficulty" class="input" aria-label="Difficulty">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+          <button type="button" id="btn-start" class="btn">Start</button>
+          <button type="button" id="btn-pause" class="btn">Pause</button>
+          <button type="button" id="btn-restart" class="btn">Restart</button>
+          <button type="button" id="btn-sound" class="btn">Sound: Off</button>
+          <button type="button" id="btn-share" class="btn">Share</button>
+        </div>
+
+        <div class="dpad" aria-label="Directional pad">
+          <button type="button" class="btn dir" data-dir="up" aria-label="Up">Up</button>
+          <div class="dpad-row">
+            <button type="button" class="btn dir" data-dir="left" aria-label="Left">Left</button>
+            <button type="button" class="btn dir" data-dir="down" aria-label="Down">Down</button>
+            <button type="button" class="btn dir" data-dir="right" aria-label="Right">Right</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <a href="export.html">Single-file export</a>
+        <span> | </span>
+        <a href="tests/spider-logic.test.html">Run logic tests</a>
+      </footer>
+    </main>
+
+    <script src="src/spider-logic.js"></script>
+    <script src="src/spider-audio.js"></script>
+    <script src="src/spider-ui.js"></script>
+  </body>
+</html>
+

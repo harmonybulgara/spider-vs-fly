@@ -1,0 +1,502 @@
+:root {
+  --bg: #0f1115;
+  --panel: #151922;
+  --text: #e6e6e6;
+  --muted: #a7b0c0;
+  --cell: #232836;
+  --spider-red: #ff3b3b;
+  --spider-blue: #3b82f6;
+  --fly: #111827;
+  --border: rgba(255, 255, 255, 0.08);
+  --cell-size: min(4.4vw, 20px);
+  --gap: 1px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Full-screen death flash */
+body.danger-flash::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(255, 0, 0, 0.0);
+  animation: danger-screen 520ms ease-out 1;
+}
+
+@keyframes danger-screen {
+  0% {
+    background: rgba(255, 0, 0, 0);
+  }
+  10% {
+    background: rgba(255, 0, 0, 0.55);
+  }
+  28% {
+    background: rgba(255, 0, 0, 0.25);
+  }
+  100% {
+    background: rgba(255, 0, 0, 0);
+  }
+}
+
+a {
+  color: var(--muted);
+}
+
+.app {
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px;
+  isolation: isolate;
+}
+
+/* Cartoony, emoji-like web background (slow spin for mild disorientation). */
+.app::before {
+  content: "";
+  position: fixed;
+  inset: -30vmax;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.85;
+  background:
+    /* rings */
+    repeating-radial-gradient(
+      circle at 50% 45%,
+      rgba(255, 255, 255, 0.10) 0 2px,
+      transparent 2px 26px
+    ),
+    /* spokes */
+    repeating-conic-gradient(
+      from 5deg at 50% 45%,
+      rgba(255, 255, 255, 0.10) 0 1.6deg,
+      transparent 1.6deg 14deg
+    ),
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.06), transparent 60%);
+  transform-origin: 50% 45%;
+  animation: none;
+}
+
+@keyframes web-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+body.web-spin .app::before {
+  animation-name: web-spin;
+  animation-duration: var(--web-spin-duration, 18s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: var(--web-spin-direction, normal);
+}
+
+.top {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 0.2px;
+}
+
+.help {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.warning {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 100, 100, 0.35);
+  background: rgba(255, 0, 0, 0.08);
+  color: rgba(255, 240, 240, 0.92);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.warning strong {
+  font-weight: 700;
+}
+
+.hud {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 120px;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.value {
+  display: block;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.board {
+  margin-top: 16px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.grid {
+  --cols: 20;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell-size));
+  grid-auto-rows: var(--cell-size);
+  gap: var(--gap);
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: max-content;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  background: var(--cell);
+  border-radius: 4px;
+  position: relative;
+}
+
+.cell.spider {
+  background: linear-gradient(90deg, var(--spider-red) 0 50%, var(--spider-blue) 50% 100%);
+}
+
+.cell.spider-head {
+  background-image:
+    radial-gradient(circle at 35% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
+    radial-gradient(circle at 65% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
+    linear-gradient(90deg, var(--spider-red) 0 50%, var(--spider-blue) 50% 100%);
+}
+
+.cell.spider-head::before,
+.cell.spider-head::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 18px;
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+.cell.spider-head::before {
+  left: -18px;
+  background:
+    linear-gradient(205deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) left top/100% 25% no-repeat,
+    linear-gradient(185deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) left 25%/100% 25% no-repeat,
+    linear-gradient(175deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) left 50%/100% 25% no-repeat,
+    linear-gradient(155deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) left 75%/100% 25% no-repeat;
+}
+
+.cell.spider-head::after {
+  right: -18px;
+  background:
+    linear-gradient(335deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) right top/100% 25% no-repeat,
+    linear-gradient(355deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) right 25%/100% 25% no-repeat,
+    linear-gradient(5deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) right 50%/100% 25% no-repeat,
+    linear-gradient(25deg, transparent 47%, rgba(0, 0, 0, 0.92) 47.5% 55.5%, transparent 56%) right 75%/100% 25% no-repeat;
+}
+
+.cell.fly {
+  background-image:
+    radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
+    radial-gradient(circle at 70% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
+    radial-gradient(circle at 50% 62%, rgba(0, 0, 0, 0.55) 0 30%, transparent 31%);
+  background-color: var(--fly);
+}
+
+.cell.fly::before,
+.cell.fly::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  width: 60%;
+  height: 55%;
+  background:
+    radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.55) 0 28%, transparent 29%),
+    radial-gradient(circle at 65% 55%, rgba(255, 255, 255, 0.18) 0 55%, transparent 56%);
+  opacity: 0.9;
+  pointer-events: none;
+  filter: blur(0.15px);
+}
+
+.cell.fly::before {
+  left: -8px;
+  transform: rotate(-18deg);
+}
+
+.cell.fly::after {
+  right: -8px;
+  transform: rotate(18deg) scaleX(-1);
+}
+
+.cell.web-trap {
+  background-color: #1f2937;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.32) 0 2px, transparent 2px 100%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.26) 0 2px, transparent 2px 100%);
+  animation: web-pulse 700ms ease-in-out infinite;
+}
+
+.cell.web-beam {
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.0), rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.0)),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.0), rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.0));
+  filter: brightness(1.45);
+}
+
+.cell.spiderling {
+  background-color: #0b1220;
+  background-image:
+    radial-gradient(circle at 35% 40%, rgba(255, 255, 255, 0.85) 0 10%, transparent 11%),
+    radial-gradient(circle at 65% 40%, rgba(255, 255, 255, 0.85) 0 10%, transparent 11%),
+    radial-gradient(circle at 50% 70%, rgba(0, 0, 0, 0.55) 0 36%, transparent 37%);
+  outline: 1px solid rgba(255, 255, 255, 0.18);
+  filter: saturate(1.2);
+}
+
+@keyframes web-pulse {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+.intense-shake .grid {
+  animation: grid-shake 120ms linear infinite;
+  will-change: transform;
+}
+
+@keyframes grid-shake {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(var(--shake, 0px), 0);
+  }
+  45% {
+    transform: translate(calc(var(--shake, 0px) * -1), var(--shake, 0px));
+  }
+  70% {
+    transform: translate(var(--shake, 0px), calc(var(--shake, 0px) * -1));
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app::before {
+    animation: none;
+  }
+  body.web-spin .app::before {
+    animation: none;
+  }
+  .cell.web-trap {
+    animation: none;
+  }
+  .intense-shake .grid {
+    animation: none;
+  }
+}
+
+.danger-flash .grid {
+  animation: danger-flash 520ms ease-out 1;
+}
+
+@keyframes danger-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+  }
+  12% {
+    box-shadow: 0 0 0 8px rgba(255, 0, 0, 0.35);
+  }
+  30% {
+    box-shadow: 0 0 0 12px rgba(255, 0, 0, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+  }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 14px;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  max-width: 92%;
+  text-align: center;
+}
+
+.controls {
+  margin-top: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.input {
+  background: #0f1115;
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.btn:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.btn:focus-visible {
+  outline: 2px solid rgba(100, 255, 171, 0.6);
+  outline-offset: 2px;
+}
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dpad-row {
+  display: flex;
+  gap: 8px;
+}
+
+.dir {
+  width: 52px;
+  height: 44px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.footer {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+
+@media (max-width: 420px) {
+  .app {
+    padding: 14px;
+  }
+
+  .stat {
+    min-width: 0;
+  }
+
+  .grid {
+    padding: 8px;
+  }
+
+  .dir {
+    width: 48px;
+  }
+}
