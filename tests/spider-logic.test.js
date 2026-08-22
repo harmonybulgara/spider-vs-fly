@@ -120,6 +120,15 @@
     assert(s2.status === logic.STATUS.gameover, "Status should be gameover");
   });
 
+  test("Normal mode starts the spider a safe distance from the fly", () => {
+    for (let seed = 1; seed <= 100; seed++) {
+      const state = logic.createInitialState({ rows: 20, cols: 20, difficulty: "normal" }, logic.createRng(seed));
+      const head = state.spider[0];
+      const distance = Math.abs(head.x - state.fly.x) + Math.abs(head.y - state.fly.y);
+      assert(distance >= 9, `Seed ${seed} started only ${distance} blocks away`);
+    }
+  });
+
   test("AI avoids moving into the body when choosing direction", () => {
     const rngZero = () => 0;
     const s1 = baseState({

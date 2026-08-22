@@ -381,7 +381,7 @@
     return Math.abs(p.x - cx) <= r && Math.abs(p.y - cy) <= r;
   }
 
-  function chooseSpiderStart(cols, rows, rng, avoidPoint) {
+  function chooseSpiderStart(cols, rows, rng, avoidPoint, minHeadDistance) {
     const candidates = [];
     for (let y = 0; y < rows; y++) {
       for (let headX = 2; headX < cols; headX++) {
@@ -391,7 +391,7 @@
           { x: headX - 2, y },
         ];
 
-        let ok = true;
+        let ok = !avoidPoint || manhattan(segs[0], avoidPoint) >= minHeadDistance;
         for (const p of segs) {
           if (outOfBounds(p, rows, cols) || pointInCenterZone(p, cols, rows)) {
             ok = false;
@@ -477,7 +477,8 @@
     const params = paramsForDifficulty(config?.difficulty);
 
     const fly = centerPoint(cols, rows);
-    const seededSpider = chooseSpiderStart(cols, rows, rng, fly);
+    const minHeadDistance = params.difficulty === "easy" ? 11 : params.difficulty === "hard" ? 7 : 9;
+    const seededSpider = chooseSpiderStart(cols, rows, rng, fly, minHeadDistance);
     const spider =
       seededSpider ||
       (function fallbackSpider() {

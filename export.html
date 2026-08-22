@@ -964,7 +964,7 @@ h1 {
     return Math.abs(p.x - cx) <= r && Math.abs(p.y - cy) <= r;
   }
 
-  function chooseSpiderStart(cols, rows, rng, avoidPoint) {
+  function chooseSpiderStart(cols, rows, rng, avoidPoint, minHeadDistance) {
     const candidates = [];
     for (let y = 0; y < rows; y++) {
       for (let headX = 2; headX < cols; headX++) {
@@ -974,7 +974,7 @@ h1 {
           { x: headX - 2, y },
         ];
 
-        let ok = true;
+        let ok = !avoidPoint || manhattan(segs[0], avoidPoint) >= minHeadDistance;
         for (const p of segs) {
           if (outOfBounds(p, rows, cols) || pointInCenterZone(p, cols, rows)) {
             ok = false;
@@ -1060,7 +1060,8 @@ h1 {
     const params = paramsForDifficulty(config?.difficulty);
 
     const fly = centerPoint(cols, rows);
-    const seededSpider = chooseSpiderStart(cols, rows, rng, fly);
+    const minHeadDistance = params.difficulty === "easy" ? 11 : params.difficulty === "hard" ? 7 : 9;
+    const seededSpider = chooseSpiderStart(cols, rows, rng, fly, minHeadDistance);
     const spider =
       seededSpider ||
       (function fallbackSpider() {
@@ -2071,16 +2072,23 @@ h1 {
     return Math.max(52, Math.floor(ms));
   }
 
-  function scheduleNextTick() {
+  function openingDelayMs() {
+    if (difficulty === "easy") return 1000;
+    if (difficulty === "hard") return 350;
+    return 750;
+  }
+
+  function scheduleNextTick(initialDelayMs) {
     if (timer !== null) return;
     const dt = computeTickMs();
+    const delay = Number.isFinite(initialDelayMs) ? Math.max(dt, initialDelayMs) : dt;
     timer = window.setTimeout(() => {
       timer = null;
       if (state.status !== logic.STATUS.playing) return;
       runMs += dt;
       dispatch({ type: "tick", dtMs: dt });
       if (state.status === logic.STATUS.playing) scheduleNextTick();
-    }, dt);
+    }, delay);
   }
 
   function startLoop() {
@@ -2149,7 +2157,7 @@ h1 {
     hasStarted = true;
     startSpinChaos();
     if (state.status === logic.STATUS.paused) dispatch({ type: "togglePause" });
-    scheduleNextTick();
+    scheduleNextTick(openingDelayMs());
   }
 
   function shareUrl() {
@@ -2228,7 +2236,7 @@ h1 {
       state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
       render();
       updateIntensity();
-      scheduleNextTick();
+      scheduleNextTick(openingDelayMs());
     }
   }
 
@@ -2264,7 +2272,7 @@ h1 {
     state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
     render();
     updateIntensity();
-    scheduleNextTick();
+    scheduleNextTick(openingDelayMs());
   });
   difficultyEl.addEventListener("change", () => {
     const v = String(difficultyEl.value || "normal");

@@ -294,16 +294,23 @@
     return Math.max(52, Math.floor(ms));
   }
 
-  function scheduleNextTick() {
+  function openingDelayMs() {
+    if (difficulty === "easy") return 1000;
+    if (difficulty === "hard") return 350;
+    return 750;
+  }
+
+  function scheduleNextTick(initialDelayMs) {
     if (timer !== null) return;
     const dt = computeTickMs();
+    const delay = Number.isFinite(initialDelayMs) ? Math.max(dt, initialDelayMs) : dt;
     timer = window.setTimeout(() => {
       timer = null;
       if (state.status !== logic.STATUS.playing) return;
       runMs += dt;
       dispatch({ type: "tick", dtMs: dt });
       if (state.status === logic.STATUS.playing) scheduleNextTick();
-    }, dt);
+    }, delay);
   }
 
   function startLoop() {
@@ -372,7 +379,7 @@
     hasStarted = true;
     startSpinChaos();
     if (state.status === logic.STATUS.paused) dispatch({ type: "togglePause" });
-    scheduleNextTick();
+    scheduleNextTick(openingDelayMs());
   }
 
   function shareUrl() {
@@ -451,7 +458,7 @@
       state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
       render();
       updateIntensity();
-      scheduleNextTick();
+      scheduleNextTick(openingDelayMs());
     }
   }
 
@@ -487,7 +494,7 @@
     state = logic.createInitialState({ rows: config.rows, cols: config.cols, difficulty }, rng);
     render();
     updateIntensity();
-    scheduleNextTick();
+    scheduleNextTick(openingDelayMs());
   });
   difficultyEl.addEventListener("change", () => {
     const v = String(difficultyEl.value || "normal");
