@@ -483,7 +483,7 @@
       scoreTicks: 0,
       ageTicks: 0,
       elapsedMs: 0,
-      nextOffspringMs: params.offspringEveryMs,
+      nextOffspringMs: params.firstOffspringMs,
       growthRemaining: 0,
       webs: [],
       webBeam: null,
@@ -561,7 +561,7 @@
         let nextOffspringMs =
           typeof state.nextOffspringMs === "number" && Number.isFinite(state.nextOffspringMs) && state.nextOffspringMs > 0
             ? state.nextOffspringMs
-            : params.offspringEveryMs;
+            : params.firstOffspringMs;
         let nextSpiderlings = spiderlings;
         while (elapsedMs >= nextOffspringMs) {
           nextSpiderlings = nextSpiderlings.concat(
@@ -843,6 +843,7 @@
         growEveryTicks: 18,
         maxSpiderLength: 1,
         offspringEveryMs: 42000,
+        firstOffspringMs: 30000,
         offspringTtlMs: 9000,
         offspringCount: 1,
         aiUnpredictability: 0,
@@ -857,6 +858,7 @@
         growEveryTicks: 8,
         maxSpiderLength: 1,
         offspringEveryMs: 16000,
+        firstOffspringMs: 30000,
         offspringTtlMs: 13000,
         offspringCount: 4,
         aiUnpredictability: 0.32,
@@ -869,7 +871,8 @@
       webStripLen: 1,
       growEveryTicks: 16,
       maxSpiderLength: 1,
-      offspringEveryMs: 31000,
+      offspringEveryMs: 30000,
+      firstOffspringMs: 30000,
       offspringTtlMs: 9500,
       offspringCount: 2,
       aiUnpredictability: 0.06,

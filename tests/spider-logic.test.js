@@ -140,6 +140,9 @@
     assert(normal.params.webCooldownTicks === 11, "Normal should have a moderate web cooldown");
     assert(hard.params.webCooldownTicks === 6, "Hard should still have a meaningful web cooldown");
     assert(hard.params.aiUnpredictability > normal.params.aiUnpredictability, "Hard AI should be less predictable");
+    assert(easy.nextOffspringMs === 30000, "Easy's first spiderlings should wait until 30s");
+    assert(normal.nextOffspringMs === 30000, "Normal's first spiderlings should wait until 30s");
+    assert(hard.nextOffspringMs === 30000, "Hard's first spiderlings should wait until 30s");
   });
 
   test("Hard AI sometimes feints instead of taking the obvious chase step", () => {
@@ -296,6 +299,23 @@
     // Advance ~10.1s and ensure they expire.
     for (let i = 0; i < 101; i++) s = logic.reduceState(s, { type: "tick", dtMs: 100 }, rng);
     assert(s.spiderlings.length === 0, "Spiderlings should expire after ~10s");
+  });
+
+  test("Offspring does not spawn before the 30-second boundary", () => {
+    const s1 = baseState({
+      rows: 12,
+      cols: 12,
+      spider: [{ x: 11, y: 11 }],
+      fly: { x: 0, y: 0 },
+      webCooldownTicks: 9999,
+      elapsedMs: 29900,
+      nextOffspringMs: 30000,
+      spiderlings: [],
+    });
+    const beforeBoundary = logic.reduceState(s1, { type: "tick", dtMs: 99 }, logic.createRng(4));
+    assert(beforeBoundary.spiderlings.length === 0, "Spiderlings should not appear before 30s");
+    const atBoundary = logic.reduceState(beforeBoundary, { type: "tick", dtMs: 1 }, logic.createRng(4));
+    assert(atBoundary.spiderlings.length > 0, "Spiderlings should appear at 30s");
   });
 
   test("Spiderlings chase the fly", () => {
