@@ -2,7 +2,7 @@
 
 This repo is a dependency-free grid game: an AI-controlled spider chases a player-controlled fly on a cartoony web.
 
-Gameplay tweaks included: the spider grows over time, and it can shoot temporary web traps that the fly must avoid.
+Gameplay tweaks included: a compact red-and-blue spider chases the fly and can shoot temporary web traps that the fly must avoid.
 Every ~30 seconds, spiderlings (offspring) appear briefly as extra hazards.
 After ~120 seconds of survival, the spider AI starts learning your fly movement transitions and predicting your next turns.
 

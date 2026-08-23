@@ -138,6 +138,25 @@
     assert(hard.params.webCooldownTicks === 7, "Hard should still have a meaningful web cooldown");
   });
 
+  test("The main chaser stays a single compact spider", () => {
+    const rng = logic.createRng(21);
+    let state = baseState({
+      rows: 50,
+      cols: 50,
+      spider: [{ x: 25, y: 25 }],
+      spiderDirection: "right",
+      fly: { x: 49, y: 49 },
+      webCooldownTicks: 9999,
+      params: {
+        ...baseState().params,
+        growEveryTicks: 1,
+        maxSpiderLength: 1,
+      },
+    });
+    for (let tick = 0; tick < 20; tick++) state = logic.reduceState(state, { type: "tick" }, rng);
+    assert(state.spider.length === 1, "The main spider should not grow a snake-like body");
+  });
+
   test("AI avoids moving into the body when choosing direction", () => {
     const rngZero = () => 0;
     const s1 = baseState({
@@ -340,7 +359,7 @@
     assert(s2.webs.length === 0, "Web trap should be removed on hit");
   });
 
-  test("Spider grows over time (every N ticks) without instantly game over", () => {
+  test("Growth logic still works when a larger maximum length is allowed", () => {
     const rng = logic.createRng(2);
     let s = baseState({
       rows: 50,

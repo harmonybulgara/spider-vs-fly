@@ -404,7 +404,7 @@
             break;
           }
         }
-        if (ok) candidates.push(segs);
+        if (ok) candidates.push([segs[0]]);
       }
     }
 
@@ -487,11 +487,7 @@
         const flyX = Math.floor(cols / 2);
         const headX = Math.min(cols - 1, Math.max(2, flyX + 2));
         const headY = Math.floor(rows / 2);
-        return [
-          { x: headX, y: headY },
-          { x: headX - 1, y: headY },
-          { x: headX - 2, y: headY },
-        ];
+        return [{ x: headX, y: headY }];
       })();
 
       const base = {
@@ -564,7 +560,13 @@
         const params = state.params || paramsForDifficulty("normal");
         const ageTicks = (state.ageTicks || 0) + 1;
         const baseGrowthRemaining = state.growthRemaining || 0;
-        const growthRemaining = ageTicks % params.growEveryTicks === 0 ? baseGrowthRemaining + 1 : baseGrowthRemaining;
+        const maxSpiderLength = Number.isFinite(params.maxSpiderLength)
+          ? Math.max(1, Math.floor(params.maxSpiderLength))
+          : Number.POSITIVE_INFINITY;
+        const growthRemaining =
+          state.spider.length < maxSpiderLength && ageTicks % params.growEveryTicks === 0
+            ? baseGrowthRemaining + 1
+            : baseGrowthRemaining;
 
         const webs = decayWebs(state.webs);
         const webBeam = decayBeam(state.webBeam);
@@ -775,7 +777,7 @@
           }
         }
 
-        const willGrow = growthRemaining > 0;
+        const willGrow = growthRemaining > 0 && state.spider.length < maxSpiderLength;
         const trimmed = state.spider.length > 1 ? state.spider.slice(0, -1) : [];
         const actuallyGrew = !didShoot && willGrow;
         const nextSpider = didShoot ? state.spider : actuallyGrew ? [nextHead, ...state.spider] : [nextHead, ...trimmed];
@@ -856,6 +858,7 @@
         webCooldownTicks: 16,
         webStripLen: 1,
         growEveryTicks: 18,
+        maxSpiderLength: 1,
         offspringEveryMs: 45000,
         offspringTtlMs: 9000,
         offspringCount: 1,
@@ -868,6 +871,7 @@
         webCooldownTicks: 7,
         webStripLen: 1,
         growEveryTicks: 8,
+        maxSpiderLength: 1,
         offspringEveryMs: 18000,
         offspringTtlMs: 13000,
         offspringCount: 4,
@@ -879,6 +883,7 @@
       webCooldownTicks: 12,
       webStripLen: 1,
       growEveryTicks: 16,
+      maxSpiderLength: 1,
       offspringEveryMs: 34000,
       offspringTtlMs: 9500,
       offspringCount: 2,

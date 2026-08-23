@@ -208,6 +208,9 @@ h1 {
 }
 
 .cell.spider-head {
+  border-radius: 50%;
+  transform: scale(0.76);
+  z-index: 3;
   background-image:
     radial-gradient(circle at 35% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
     radial-gradient(circle at 65% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
@@ -223,6 +226,7 @@ h1 {
   width: 18px;
   opacity: 0.95;
   pointer-events: none;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.9));
 }
 
 .cell.spider-head::before {
@@ -244,6 +248,7 @@ h1 {
 }
 
 .cell.fly {
+  z-index: 4;
   background-image:
     radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
     radial-gradient(circle at 70% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
@@ -256,23 +261,24 @@ h1 {
   content: "";
   position: absolute;
   top: -1px;
-  width: 60%;
-  height: 55%;
-  background:
-    radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.55) 0 28%, transparent 29%),
-    radial-gradient(circle at 65% 55%, rgba(255, 255, 255, 0.18) 0 55%, transparent 56%);
-  opacity: 0.9;
+  width: 68%;
+  height: 60%;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 70% 45% 65% 40%;
+  background: rgba(210, 242, 255, 0.74);
+  box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.9);
+  opacity: 0.96;
   pointer-events: none;
   filter: blur(0.15px);
 }
 
 .cell.fly::before {
-  left: -8px;
+  left: -10px;
   transform: rotate(-18deg);
 }
 
 .cell.fly::after {
-  right: -8px;
+  right: -10px;
   transform: rotate(18deg) scaleX(-1);
 }
 

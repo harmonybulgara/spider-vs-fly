@@ -218,6 +218,9 @@ h1 {
 }
 
 .cell.spider-head {
+  border-radius: 50%;
+  transform: scale(0.76);
+  z-index: 3;
   background-image:
     radial-gradient(circle at 35% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
     radial-gradient(circle at 65% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
@@ -233,6 +236,7 @@ h1 {
   width: 18px;
   opacity: 0.95;
   pointer-events: none;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.9));
 }
 
 .cell.spider-head::before {
@@ -254,6 +258,7 @@ h1 {
 }
 
 .cell.fly {
+  z-index: 4;
   background-image:
     radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
     radial-gradient(circle at 70% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
@@ -266,23 +271,24 @@ h1 {
   content: "";
   position: absolute;
   top: -1px;
-  width: 60%;
-  height: 55%;
-  background:
-    radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.55) 0 28%, transparent 29%),
-    radial-gradient(circle at 65% 55%, rgba(255, 255, 255, 0.18) 0 55%, transparent 56%);
-  opacity: 0.9;
+  width: 68%;
+  height: 60%;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 70% 45% 65% 40%;
+  background: rgba(210, 242, 255, 0.74);
+  box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.9);
+  opacity: 0.96;
   pointer-events: none;
   filter: blur(0.15px);
 }
 
 .cell.fly::before {
-  left: -8px;
+  left: -10px;
   transform: rotate(-18deg);
 }
 
 .cell.fly::after {
-  right: -8px;
+  right: -10px;
   transform: rotate(18deg) scaleX(-1);
 }
 
@@ -987,7 +993,7 @@ h1 {
             break;
           }
         }
-        if (ok) candidates.push(segs);
+        if (ok) candidates.push([segs[0]]);
       }
     }
 
@@ -1070,11 +1076,7 @@ h1 {
         const flyX = Math.floor(cols / 2);
         const headX = Math.min(cols - 1, Math.max(2, flyX + 2));
         const headY = Math.floor(rows / 2);
-        return [
-          { x: headX, y: headY },
-          { x: headX - 1, y: headY },
-          { x: headX - 2, y: headY },
-        ];
+        return [{ x: headX, y: headY }];
       })();
 
       const base = {
@@ -1147,7 +1149,13 @@ h1 {
         const params = state.params || paramsForDifficulty("normal");
         const ageTicks = (state.ageTicks || 0) + 1;
         const baseGrowthRemaining = state.growthRemaining || 0;
-        const growthRemaining = ageTicks % params.growEveryTicks === 0 ? baseGrowthRemaining + 1 : baseGrowthRemaining;
+        const maxSpiderLength = Number.isFinite(params.maxSpiderLength)
+          ? Math.max(1, Math.floor(params.maxSpiderLength))
+          : Number.POSITIVE_INFINITY;
+        const growthRemaining =
+          state.spider.length < maxSpiderLength && ageTicks % params.growEveryTicks === 0
+            ? baseGrowthRemaining + 1
+            : baseGrowthRemaining;
 
         const webs = decayWebs(state.webs);
         const webBeam = decayBeam(state.webBeam);
@@ -1358,7 +1366,7 @@ h1 {
           }
         }
 
-        const willGrow = growthRemaining > 0;
+        const willGrow = growthRemaining > 0 && state.spider.length < maxSpiderLength;
         const trimmed = state.spider.length > 1 ? state.spider.slice(0, -1) : [];
         const actuallyGrew = !didShoot && willGrow;
         const nextSpider = didShoot ? state.spider : actuallyGrew ? [nextHead, ...state.spider] : [nextHead, ...trimmed];
@@ -1439,6 +1447,7 @@ h1 {
         webCooldownTicks: 16,
         webStripLen: 1,
         growEveryTicks: 18,
+        maxSpiderLength: 1,
         offspringEveryMs: 45000,
         offspringTtlMs: 9000,
         offspringCount: 1,
@@ -1451,6 +1460,7 @@ h1 {
         webCooldownTicks: 7,
         webStripLen: 1,
         growEveryTicks: 8,
+        maxSpiderLength: 1,
         offspringEveryMs: 18000,
         offspringTtlMs: 13000,
         offspringCount: 4,
@@ -1462,6 +1472,7 @@ h1 {
       webCooldownTicks: 12,
       webStripLen: 1,
       growEveryTicks: 16,
+      maxSpiderLength: 1,
       offspringEveryMs: 34000,
       offspringTtlMs: 9500,
       offspringCount: 2,
