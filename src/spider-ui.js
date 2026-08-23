@@ -35,6 +35,8 @@
   const soundBtn = document.getElementById("btn-sound");
   const shareBtn = document.getElementById("btn-share");
   const difficultyEl = document.getElementById("difficulty");
+  const redCircusLightEl = document.getElementById("red-circus-light");
+  const blueCircusLightEl = document.getElementById("blue-circus-light");
 
   if (
     !gridEl ||
@@ -52,6 +54,7 @@
   }
   if (!shareBtn) throw new Error("Missing #btn-share element.");
   if (!difficultyEl) throw new Error("Missing #difficulty element.");
+  if (!redCircusLightEl || !blueCircusLightEl) throw new Error("Missing circus light elements.");
 
   gridEl.style.setProperty("--cols", String(config.cols));
 
@@ -152,18 +155,18 @@
   const circusLightStartMs = performance.now();
 
   function updateCircusLights() {
-    if (reduceMotion?.matches) return;
-    const seconds = (performance.now() - circusLightStartMs) / 1000;
-    const centerX = 50 + Math.sin(seconds * 0.31) * 18;
-    const centerY = 50 + Math.cos(seconds * 0.27) * 13;
-    const separation = Math.cos(seconds * 0.32);
-    const orbitX = Math.cos(seconds * 0.78) * 38 * separation;
-    const orbitY = Math.sin(seconds * 0.78) * 32 * separation;
-    document.documentElement.style.setProperty("--red-light-x", `${centerX + orbitX}%`);
-    document.documentElement.style.setProperty("--red-light-y", `${centerY + orbitY}%`);
-    document.documentElement.style.setProperty("--blue-light-x", `${centerX - orbitX}%`);
-    document.documentElement.style.setProperty("--blue-light-y", `${centerY - orbitY}%`);
-    circusLightTimer = window.setTimeout(updateCircusLights, 80);
+    const reduced = !!reduceMotion?.matches;
+    const motionScale = reduced ? 0.22 : 1;
+    const seconds = ((performance.now() - circusLightStartMs) / 1000) * motionScale;
+    const centerX = 50 + Math.sin(seconds * 0.2) * 8;
+    const centerY = 50 + Math.cos(seconds * 0.17) * 6;
+    const redAngle = seconds * 0.65;
+    const blueAngle = Math.PI - seconds * 0.72;
+    redCircusLightEl.style.left = `${centerX + Math.cos(redAngle) * 42}%`;
+    redCircusLightEl.style.top = `${centerY + Math.sin(redAngle) * 34}%`;
+    blueCircusLightEl.style.left = `${centerX + Math.cos(blueAngle) * 42}%`;
+    blueCircusLightEl.style.top = `${centerY + Math.sin(blueAngle) * 34}%`;
+    circusLightTimer = window.setTimeout(updateCircusLights, reduced ? 140 : 60);
   }
 
   function stopSpinChaos() {
