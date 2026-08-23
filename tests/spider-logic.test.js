@@ -180,7 +180,7 @@
       cols: 8,
       spider: [{ x: 0, y: 0 }],
       spiderDirection: "down",
-      fly: { x: 0, y: 6 },
+      fly: { x: 0, y: 3 },
       webs: [],
       webCooldownTicks: 0,
     });
@@ -189,10 +189,26 @@
     assert(s2.webShotSeq === 1, "webShotSeq should increment");
     assert(s2.webCooldownTicks > 0, "webCooldownTicks should be set");
     assert(s2.webs.length >= 1, "Should add web traps");
-    assertPoint(s2.webs[0], { x: 0, y: 3 }, "Web should be within max range of the spider");
+    assertPoint(s2.webs[0], { x: 0, y: 2 }, "Web should stop before reaching the fly");
     assert(!!s2.webBeam, "webBeam should be set for rendering");
     assertPoint(s2.webBeam.from, { x: 0, y: 0 }, "Beam origin should be the spider head at shoot time");
-    assertPoint(s2.webBeam.to, { x: 0, y: 3 }, "Beam range should be capped");
+    assertPoint(s2.webBeam.to, { x: 0, y: 2 }, "Beam range should be capped");
+  });
+
+  test("Spider cannot shoot when the fly is beyond web range", () => {
+    const s1 = baseState({
+      rows: 12,
+      cols: 12,
+      spider: [{ x: 0, y: 0 }],
+      spiderDirection: "down",
+      fly: { x: 0, y: 10 },
+      webs: [],
+      webCooldownTicks: 0,
+    });
+    const s2 = logic.reduceState(s1, { type: "tick" }, () => 0);
+    assert(!s2.lastWebShot, "A distant aligned fly should not trigger a web shot");
+    assert(s2.webShotSeq === 0, "Distant shots should not increment webShotSeq");
+    assert(s2.webs.length === 0, "Distant shots should not create web traps");
   });
 
   test("When adjacent, web shot tries to place beyond the fly (no insta-kill)", () => {

@@ -898,6 +898,9 @@ h1 {
     if (!fly) return null;
     if (head.x !== fly.x && head.y !== fly.y) return null;
 
+    const distToFly = manhattan(head, fly);
+    if (distToFly > WEB_MAX_RANGE_BLOCKS) return null;
+
     const between = lineCells(head, fly);
     if (between.length === 0) {
       // If adjacent, try placing a web just beyond the fly (still feels like a "shot" without insta-killing).
@@ -925,7 +928,6 @@ h1 {
     const dx = Math.sign(fly.x - head.x);
     const dy = Math.sign(fly.y - head.y);
 
-    const distToFly = manhattan(head, fly);
     const dist = Math.min(WEB_MAX_RANGE_BLOCKS, Math.max(1, distToFly - 1));
     const candidate = { x: head.x + dx * dist, y: head.y + dy * dist };
 
