@@ -278,7 +278,7 @@ h1::after {
     radial-gradient(circle at 65% 40%, rgba(255, 255, 255, 0.9) 0 14%, transparent 15%),
     linear-gradient(90deg, var(--spider-red) 0 50%, var(--spider-blue) 50% 100%);
   outline: 2px solid var(--ink);
-  animation: spider-scuttle 260ms ease-in-out infinite alternate;
+  backface-visibility: hidden;
 }
 
 .cell.spider-head::before,
@@ -318,6 +318,7 @@ h1::after {
     radial-gradient(circle at 70% 35%, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
     radial-gradient(circle at 50% 62%, rgba(0, 0, 0, 0.55) 0 30%, transparent 31%);
   background-color: var(--fly);
+  backface-visibility: hidden;
 }
 
 .cell.fly::before,
@@ -335,7 +336,6 @@ h1::after {
   pointer-events: none;
   filter: blur(0.15px);
   transform-origin: bottom center;
-  animation: wing-flap 180ms ease-in-out infinite alternate;
 }
 
 .cell.fly::before {
@@ -346,7 +346,6 @@ h1::after {
 .cell.fly::after {
   right: -10px;
   transform: rotate(18deg) scaleX(-1);
-  animation-direction: alternate-reverse;
 }
 
 .cell.web-trap {
@@ -607,23 +606,11 @@ h1::after {
   to { transform: translate(5px, -4px) rotate(8deg); }
 }
 
-@keyframes spider-scuttle {
-  from { transform: scale(0.76) rotate(-3deg); }
-  to { transform: scale(0.8) rotate(3deg); }
-}
-
-@keyframes wing-flap {
-  from { scale: 1 0.72; }
-  to { scale: 1 1.08; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   h1,
   h1::before,
   h1::after,
-  .cell.spider-head,
-  .cell.fly::before,
-  .cell.fly::after {
+  .cell.spider-head {
     animation: none;
   }
 
@@ -2098,15 +2085,17 @@ h1::after {
   }
 
   function render() {
+    const nextSpiderIndices = new Set();
+    for (const point of state.spider) nextSpiderIndices.add(point.y * state.cols + point.x);
+    const nextSpiderHeadIndex = state.spider.length > 0 ? state.spider[0].y * state.cols + state.spider[0].x : null;
     for (const idx of prevSpiderIndices) {
-      const cell = cells[idx];
-      cell.classList.remove("spider", "spider-head");
+      if (!nextSpiderIndices.has(idx)) cells[idx].classList.remove("spider", "spider-head");
+      else if (idx !== nextSpiderHeadIndex) cells[idx].classList.remove("spider-head");
     }
-    prevSpiderIndices = new Set();
 
-    if (prevFlyIndex !== null) {
+    const nextFlyIndex = state.fly ? state.fly.y * state.cols + state.fly.x : null;
+    if (prevFlyIndex !== null && prevFlyIndex !== nextFlyIndex) {
       cells[prevFlyIndex].classList.remove("fly");
-      prevFlyIndex = null;
     }
 
     for (const idx of prevWebIndices) {
@@ -2166,11 +2155,10 @@ h1::after {
       cell.classList.add("spider");
       if (i === 0) cell.classList.add("spider-head");
     }
+    prevSpiderIndices = nextSpiderIndices;
 
-    if (state.fly) {
-      prevFlyIndex = state.fly.y * state.cols + state.fly.x;
-      cells[prevFlyIndex].classList.add("fly");
-    }
+    if (nextFlyIndex !== null) cells[nextFlyIndex].classList.add("fly");
+    prevFlyIndex = nextFlyIndex;
 
     scoreEl.textContent = formatMs(runMs);
     bestEl.textContent = formatMs(bestMs);

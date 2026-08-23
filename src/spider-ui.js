@@ -186,15 +186,17 @@
   }
 
   function render() {
+    const nextSpiderIndices = new Set();
+    for (const point of state.spider) nextSpiderIndices.add(point.y * state.cols + point.x);
+    const nextSpiderHeadIndex = state.spider.length > 0 ? state.spider[0].y * state.cols + state.spider[0].x : null;
     for (const idx of prevSpiderIndices) {
-      const cell = cells[idx];
-      cell.classList.remove("spider", "spider-head");
+      if (!nextSpiderIndices.has(idx)) cells[idx].classList.remove("spider", "spider-head");
+      else if (idx !== nextSpiderHeadIndex) cells[idx].classList.remove("spider-head");
     }
-    prevSpiderIndices = new Set();
 
-    if (prevFlyIndex !== null) {
+    const nextFlyIndex = state.fly ? state.fly.y * state.cols + state.fly.x : null;
+    if (prevFlyIndex !== null && prevFlyIndex !== nextFlyIndex) {
       cells[prevFlyIndex].classList.remove("fly");
-      prevFlyIndex = null;
     }
 
     for (const idx of prevWebIndices) {
@@ -254,11 +256,10 @@
       cell.classList.add("spider");
       if (i === 0) cell.classList.add("spider-head");
     }
+    prevSpiderIndices = nextSpiderIndices;
 
-    if (state.fly) {
-      prevFlyIndex = state.fly.y * state.cols + state.fly.x;
-      cells[prevFlyIndex].classList.add("fly");
-    }
+    if (nextFlyIndex !== null) cells[nextFlyIndex].classList.add("fly");
+    prevFlyIndex = nextFlyIndex;
 
     scoreEl.textContent = formatMs(runMs);
     bestEl.textContent = formatMs(bestMs);
