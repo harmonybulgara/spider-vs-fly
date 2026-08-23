@@ -253,6 +253,7 @@ h1::after {
   width: max-content;
   user-select: none;
   touch-action: manipulation;
+  position: relative;
   box-shadow: 0 8px 0 var(--ink), 0 18px 44px rgba(0, 0, 0, 0.42), inset 0 0 0 2px var(--border);
 }
 
@@ -387,24 +388,28 @@ h1::after {
 
 .intense-shake .grid {
   animation: grid-shake 120ms linear infinite;
-  will-change: transform;
 }
 
 @keyframes grid-shake {
   0% {
-    transform: translate(0, 0);
+    left: 0;
+    top: 0;
   }
   20% {
-    transform: translate(var(--shake, 0px), 0);
+    left: var(--shake, 0px);
+    top: 0;
   }
   45% {
-    transform: translate(calc(var(--shake, 0px) * -1), var(--shake, 0px));
+    left: calc(0px - var(--shake, 0px));
+    top: var(--shake, 0px);
   }
   70% {
-    transform: translate(var(--shake, 0px), calc(var(--shake, 0px) * -1));
+    left: var(--shake, 0px);
+    top: calc(0px - var(--shake, 0px));
   }
   100% {
-    transform: translate(0, 0);
+    left: 0;
+    top: 0;
   }
 }
 
