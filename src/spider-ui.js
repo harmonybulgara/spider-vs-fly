@@ -156,12 +156,12 @@
 
   function updateCircusLights() {
     const reduced = !!reduceMotion?.matches;
-    const motionScale = reduced ? 0.65 : 1;
+    const motionScale = reduced ? 0.75 : 1;
     const seconds = ((performance.now() - circusLightStartMs) / 1000) * motionScale;
-    const centerX = 50 + Math.sin(seconds * 0.2) * 8;
-    const centerY = 50 + Math.cos(seconds * 0.17) * 6;
-    const redAngle = seconds * 0.65;
-    const blueAngle = Math.PI - seconds * 0.72;
+    const centerX = 50 + Math.sin(seconds * 0.28) * 8;
+    const centerY = 50 + Math.cos(seconds * 0.24) * 6;
+    const redAngle = seconds * 1.05;
+    const blueAngle = Math.PI - seconds * 1.2;
     redCircusLightEl.style.left = `${centerX + Math.cos(redAngle) * 42}%`;
     redCircusLightEl.style.top = `${centerY + Math.sin(redAngle) * 34}%`;
     blueCircusLightEl.style.left = `${centerX + Math.cos(blueAngle) * 42}%`;

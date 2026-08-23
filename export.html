@@ -55,9 +55,9 @@ body {
 
 .circus-light {
   position: absolute;
-  width: 50vmax;
-  height: 50vmax;
-  margin: -25vmax 0 0 -25vmax;
+  width: 42vmax;
+  height: 42vmax;
+  margin: -21vmax 0 0 -21vmax;
   border-radius: 50%;
   mix-blend-mode: screen;
 }
@@ -65,13 +65,13 @@ body {
 .red-circus-light {
   left: 92%;
   top: 56%;
-  background: radial-gradient(circle, rgba(255, 35, 70, 0.72) 0 12%, rgba(255, 35, 70, 0.32) 34%, transparent 68%);
+  background: radial-gradient(circle, rgba(255, 35, 70, 0.82) 0 38%, rgba(255, 35, 70, 0.64) 50%, rgba(255, 35, 70, 0.26) 63%, transparent 74%);
 }
 
 .blue-circus-light {
   left: 8%;
   top: 56%;
-  background: radial-gradient(circle, rgba(35, 105, 255, 0.74) 0 12%, rgba(35, 105, 255, 0.34) 34%, transparent 68%);
+  background: radial-gradient(circle, rgba(35, 105, 255, 0.84) 0 38%, rgba(35, 105, 255, 0.66) 50%, rgba(35, 105, 255, 0.28) 63%, transparent 74%);
 }
 
 /* Full-screen death flash */
@@ -2066,12 +2066,12 @@ h1::after {
 
   function updateCircusLights() {
     const reduced = !!reduceMotion?.matches;
-    const motionScale = reduced ? 0.65 : 1;
+    const motionScale = reduced ? 0.75 : 1;
     const seconds = ((performance.now() - circusLightStartMs) / 1000) * motionScale;
-    const centerX = 50 + Math.sin(seconds * 0.2) * 8;
-    const centerY = 50 + Math.cos(seconds * 0.17) * 6;
-    const redAngle = seconds * 0.65;
-    const blueAngle = Math.PI - seconds * 0.72;
+    const centerX = 50 + Math.sin(seconds * 0.28) * 8;
+    const centerY = 50 + Math.cos(seconds * 0.24) * 6;
+    const redAngle = seconds * 1.05;
+    const blueAngle = Math.PI - seconds * 1.2;
     redCircusLightEl.style.left = `${centerX + Math.cos(redAngle) * 42}%`;
     redCircusLightEl.style.top = `${centerY + Math.sin(redAngle) * 34}%`;
     blueCircusLightEl.style.left = `${centerX + Math.cos(blueAngle) * 42}%`;
