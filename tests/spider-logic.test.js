@@ -125,7 +125,7 @@
       const state = logic.createInitialState({ rows: 20, cols: 20, difficulty: "normal" }, logic.createRng(seed));
       const head = state.spider[0];
       const distance = Math.abs(head.x - state.fly.x) + Math.abs(head.y - state.fly.y);
-      assert(distance >= 9, `Seed ${seed} started only ${distance} blocks away`);
+      assert(distance >= 8, `Seed ${seed} started only ${distance} blocks away`);
     }
   });
 
@@ -133,9 +133,25 @@
     const easy = logic.createInitialState({ rows: 20, cols: 20, difficulty: "easy" }, logic.createRng(1));
     const normal = logic.createInitialState({ rows: 20, cols: 20, difficulty: "normal" }, logic.createRng(1));
     const hard = logic.createInitialState({ rows: 20, cols: 20, difficulty: "hard" }, logic.createRng(1));
-    assert(easy.params.webCooldownTicks === 16, "Easy should have a long web cooldown");
-    assert(normal.params.webCooldownTicks === 12, "Normal should have a moderate web cooldown");
-    assert(hard.params.webCooldownTicks === 7, "Hard should still have a meaningful web cooldown");
+    assert(easy.params.webCooldownTicks === 15, "Easy should have a long web cooldown");
+    assert(normal.params.webCooldownTicks === 11, "Normal should have a moderate web cooldown");
+    assert(hard.params.webCooldownTicks === 6, "Hard should still have a meaningful web cooldown");
+    assert(hard.params.aiUnpredictability > normal.params.aiUnpredictability, "Hard AI should be less predictable");
+  });
+
+  test("Hard AI sometimes feints instead of taking the obvious chase step", () => {
+    const hardState = baseState({
+      rows: 12,
+      cols: 12,
+      spider: [{ x: 4, y: 5 }],
+      spiderDirection: "right",
+      fly: { x: 9, y: 5 },
+      params: { ...baseState().params, difficulty: "hard", aiUnpredictability: 1 },
+    });
+    const direct = logic.chooseAiDirection({ ...hardState, params: { ...hardState.params, aiUnpredictability: 0 } }, () => 0);
+    const feint = logic.chooseAiDirection(hardState, () => 0.99);
+    assert(direct === "right", "Direct chase should move right");
+    assert(feint !== direct, "Hard feint should sometimes choose another nearby route");
   });
 
   test("The main chaser stays a single compact spider", () => {

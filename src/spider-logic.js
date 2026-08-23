@@ -431,7 +431,7 @@
       const intercept = simulateFlyFuture(state, horizon);
 
       let bestDist = Number.POSITIVE_INFINITY;
-      const bestDirs = [];
+      const scoredDirs = [];
 
     for (const dir of AI_DIR_ORDER) {
       if (state.spider.length > 1 && isOpposite(current, dir)) continue;
@@ -460,16 +460,21 @@
         const interceptDist = intercept ? manhattan(nextHead, intercept) : chaseDist;
         // As learnFactor increases, "intercept" dominates, creating a cut-off feeling.
         const dist = chaseDist * (1.0 - learnFactor * 0.45) + interceptDist * (0.55 + learnFactor * 0.9);
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestDirs.length = 0;
-          bestDirs.push(dir);
-        } else if (dist === bestDist) {
-        bestDirs.push(dir);
-      }
+        bestDist = Math.min(bestDist, dist);
+        scoredDirs.push({ dir, dist });
     }
 
+    const bestDirs = scoredDirs.filter((candidate) => candidate.dist === bestDist).map((candidate) => candidate.dir);
     if (bestDirs.length === 0) return isDirection(current) ? current : "right";
+
+    const unpredictability = clamp01(state.params?.aiUnpredictability || 0);
+    if (unpredictability > 0 && safeRngValue(rng) < unpredictability) {
+      const feintDirs = scoredDirs
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 3);
+      return feintDirs[randomInt(rng, feintDirs.length)].dir;
+    }
+
     if (bestDirs.length === 1) return bestDirs[0];
     return bestDirs[randomInt(rng, bestDirs.length)];
   }
@@ -479,7 +484,7 @@
     const params = paramsForDifficulty(config?.difficulty);
 
     const fly = centerPoint(cols, rows);
-    const minHeadDistance = params.difficulty === "easy" ? 11 : params.difficulty === "hard" ? 7 : 9;
+    const minHeadDistance = params.difficulty === "easy" ? 10 : params.difficulty === "hard" ? 6 : 8;
     const seededSpider = chooseSpiderStart(cols, rows, rng, fly, minHeadDistance);
     const spider =
       seededSpider ||
@@ -855,37 +860,40 @@
       return {
         difficulty: "easy",
         webTtlTicks: 40,
-        webCooldownTicks: 16,
+        webCooldownTicks: 15,
         webStripLen: 1,
         growEveryTicks: 18,
         maxSpiderLength: 1,
-        offspringEveryMs: 45000,
+        offspringEveryMs: 42000,
         offspringTtlMs: 9000,
         offspringCount: 1,
+        aiUnpredictability: 0,
       };
     }
     if (d === "hard") {
       return {
         difficulty: "hard",
-        webTtlTicks: 82,
-        webCooldownTicks: 7,
+        webTtlTicks: 88,
+        webCooldownTicks: 6,
         webStripLen: 1,
         growEveryTicks: 8,
         maxSpiderLength: 1,
-        offspringEveryMs: 18000,
+        offspringEveryMs: 16000,
         offspringTtlMs: 13000,
         offspringCount: 4,
+        aiUnpredictability: 0.32,
       };
     }
     return {
       difficulty: "normal",
-      webTtlTicks: 48,
-      webCooldownTicks: 12,
+      webTtlTicks: 52,
+      webCooldownTicks: 11,
       webStripLen: 1,
       growEveryTicks: 16,
       maxSpiderLength: 1,
-      offspringEveryMs: 34000,
+      offspringEveryMs: 31000,
       offspringTtlMs: 9500,
       offspringCount: 2,
+      aiUnpredictability: 0.06,
     };
   }

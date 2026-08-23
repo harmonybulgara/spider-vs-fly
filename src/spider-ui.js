@@ -289,15 +289,15 @@
   function computeTickMs() {
     const t = computeThreat();
     const survival = Math.min(1, runMs / 90000);
-    const base = difficulty === "easy" ? 140 : difficulty === "hard" ? 88 : 126;
+    const base = difficulty === "easy" ? 136 : difficulty === "hard" ? 84 : 121;
     const ms = base - t * 34 - survival * 38;
     return Math.max(52, Math.floor(ms));
   }
 
   function openingDelayMs() {
-    if (difficulty === "easy") return 1000;
-    if (difficulty === "hard") return 350;
-    return 750;
+    if (difficulty === "easy") return 900;
+    if (difficulty === "hard") return 300;
+    return 650;
   }
 
   function scheduleNextTick(initialDelayMs) {
