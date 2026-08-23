@@ -120,12 +120,15 @@
     assert(s2.status === logic.STATUS.gameover, "Status should be gameover");
   });
 
-  test("Normal mode starts the spider a safe distance from the fly", () => {
-    for (let seed = 1; seed <= 100; seed++) {
-      const state = logic.createInitialState({ rows: 20, cols: 20, difficulty: "normal" }, logic.createRng(seed));
-      const head = state.spider[0];
-      const distance = Math.abs(head.x - state.fly.x) + Math.abs(head.y - state.fly.y);
-      assert(distance >= 8, `Seed ${seed} started only ${distance} blocks away`);
+  test("Every mode starts the fly in the middle and spider against a wall", () => {
+    for (const difficulty of ["easy", "normal", "hard"]) {
+      for (let seed = 1; seed <= 100; seed++) {
+        const state = logic.createInitialState({ rows: 20, cols: 20, difficulty }, logic.createRng(seed));
+        const head = state.spider[0];
+        const againstWall = head.x === 0 || head.y === 0 || head.x === state.cols - 1 || head.y === state.rows - 1;
+        assertPoint(state.fly, { x: 10, y: 10 }, `${difficulty} fly should start in the middle`);
+        assert(againstWall, `${difficulty} seed ${seed} did not start the spider against a wall`);
+      }
     }
   });
 

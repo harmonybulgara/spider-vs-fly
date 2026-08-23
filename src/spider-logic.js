@@ -376,35 +376,16 @@
     return { x: Math.floor(cols / 2), y: Math.floor(rows / 2) };
   }
 
-  function pointInCenterZone(p, cols, rows) {
-    const cx = Math.floor(cols / 2);
-    const cy = Math.floor(rows / 2);
-    const r = 3; // 7x7-ish "center area"
-    return Math.abs(p.x - cx) <= r && Math.abs(p.y - cy) <= r;
-  }
-
   function chooseSpiderStart(cols, rows, rng, avoidPoint, minHeadDistance) {
     const candidates = [];
     for (let y = 0; y < rows; y++) {
-      for (let headX = 2; headX < cols; headX++) {
-        const segs = [
-          { x: headX, y },
-          { x: headX - 1, y },
-          { x: headX - 2, y },
-        ];
-
-        let ok = !avoidPoint || manhattan(segs[0], avoidPoint) >= minHeadDistance;
-        for (const p of segs) {
-          if (outOfBounds(p, rows, cols) || pointInCenterZone(p, cols, rows)) {
-            ok = false;
-            break;
-          }
-          if (avoidPoint && samePoint(p, avoidPoint)) {
-            ok = false;
-            break;
-          }
-        }
-        if (ok) candidates.push([segs[0]]);
+      for (let x = 0; x < cols; x++) {
+        const isAgainstWall = x === 0 || y === 0 || x === cols - 1 || y === rows - 1;
+        const point = { x, y };
+        if (!isAgainstWall) continue;
+        if (avoidPoint && manhattan(point, avoidPoint) < minHeadDistance) continue;
+        if (avoidPoint && samePoint(point, avoidPoint)) continue;
+        candidates.push([point]);
       }
     }
 
@@ -489,10 +470,7 @@
     const spider =
       seededSpider ||
       (function fallbackSpider() {
-        const flyX = Math.floor(cols / 2);
-        const headX = Math.min(cols - 1, Math.max(2, flyX + 2));
-        const headY = Math.floor(rows / 2);
-        return [{ x: headX, y: headY }];
+        return [{ x: 0, y: 0 }];
       })();
 
       const base = {
