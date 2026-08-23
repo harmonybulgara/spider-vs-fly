@@ -853,7 +853,7 @@
       return {
         difficulty: "easy",
         webTtlTicks: 40,
-        webCooldownTicks: 10,
+        webCooldownTicks: 16,
         webStripLen: 1,
         growEveryTicks: 18,
         offspringEveryMs: 45000,
@@ -865,7 +865,7 @@
       return {
         difficulty: "hard",
         webTtlTicks: 82,
-        webCooldownTicks: 3,
+        webCooldownTicks: 7,
         webStripLen: 1,
         growEveryTicks: 8,
         offspringEveryMs: 18000,
@@ -876,7 +876,7 @@
     return {
       difficulty: "normal",
       webTtlTicks: 48,
-      webCooldownTicks: 7,
+      webCooldownTicks: 12,
       webStripLen: 1,
       growEveryTicks: 16,
       offspringEveryMs: 34000,

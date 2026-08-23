@@ -129,6 +129,15 @@
     }
   });
 
+  test("Difficulty settings limit how often webs can be placed", () => {
+    const easy = logic.createInitialState({ rows: 20, cols: 20, difficulty: "easy" }, logic.createRng(1));
+    const normal = logic.createInitialState({ rows: 20, cols: 20, difficulty: "normal" }, logic.createRng(1));
+    const hard = logic.createInitialState({ rows: 20, cols: 20, difficulty: "hard" }, logic.createRng(1));
+    assert(easy.params.webCooldownTicks === 16, "Easy should have a long web cooldown");
+    assert(normal.params.webCooldownTicks === 12, "Normal should have a moderate web cooldown");
+    assert(hard.params.webCooldownTicks === 7, "Hard should still have a meaningful web cooldown");
+  });
+
   test("AI avoids moving into the body when choosing direction", () => {
     const rngZero = () => 0;
     const s1 = baseState({
