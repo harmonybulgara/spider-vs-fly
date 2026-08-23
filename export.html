@@ -74,6 +74,113 @@ body {
   background: radial-gradient(circle, rgba(35, 105, 255, 0.84) 0 38%, rgba(35, 105, 255, 0.66) 50%, rgba(35, 105, 255, 0.28) 63%, transparent 74%);
 }
 
+.hanging-spiders {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hanging-spider {
+  position: absolute;
+  top: 0;
+  left: var(--hanger-left);
+  width: 72px;
+  height: var(--hanger-drop);
+  margin-left: -36px;
+  transform-origin: 50% 0;
+  animation: hanging-spider-sway var(--hanger-speed) ease-in-out infinite alternate;
+  animation-delay: var(--hanger-delay);
+}
+
+.hanging-spider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 40px;
+  left: 50%;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), #fff 50%, rgba(255, 255, 255, 0.18));
+  box-shadow: 0 0 7px rgba(255, 255, 255, 0.7);
+}
+
+.cartoon-spider {
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  width: 42px;
+  height: 38px;
+  margin-left: -21px;
+  z-index: 1;
+  border: 4px solid var(--ink);
+  border-radius: 52% 52% 46% 46%;
+  background:
+    radial-gradient(circle at 35% 37%, #fff 0 8%, #141023 9% 13%, transparent 14%),
+    radial-gradient(circle at 65% 37%, #fff 0 8%, #141023 9% 13%, transparent 14%),
+    radial-gradient(circle at 37% 64%, #ff5a69 0 30%, transparent 31%),
+    radial-gradient(circle at 63% 64%, #4a8fff 0 30%, transparent 31%),
+    #7139a8;
+  box-shadow: 0 5px 0 rgba(9, 7, 24, 0.45), 0 0 15px rgba(255, 255, 255, 0.22);
+}
+
+.cartoon-spider::before,
+.cartoon-spider::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  width: 24px;
+  height: 30px;
+  background:
+    linear-gradient(25deg, transparent 42%, var(--ink) 43% 57%, transparent 58%) 0 0 / 24px 8px no-repeat,
+    linear-gradient(8deg, transparent 42%, var(--ink) 43% 57%, transparent 58%) 0 8px / 24px 8px no-repeat,
+    linear-gradient(-8deg, transparent 42%, var(--ink) 43% 57%, transparent 58%) 0 16px / 24px 8px no-repeat,
+    linear-gradient(-25deg, transparent 42%, var(--ink) 43% 57%, transparent 58%) 0 24px / 24px 8px no-repeat;
+}
+
+.cartoon-spider::before {
+  right: 34px;
+}
+
+.cartoon-spider::after {
+  left: 34px;
+  transform: scaleX(-1);
+}
+
+.hanger-one {
+  --hanger-left: 8%;
+  --hanger-drop: 25vh;
+  --hanger-speed: 4.4s;
+  --hanger-delay: -0.8s;
+}
+
+.hanger-two {
+  --hanger-left: 27%;
+  --hanger-drop: 38vh;
+  --hanger-speed: 5.6s;
+  --hanger-delay: -2.1s;
+}
+
+.hanger-three {
+  --hanger-left: 74%;
+  --hanger-drop: 31vh;
+  --hanger-speed: 5.1s;
+  --hanger-delay: -3.4s;
+}
+
+.hanger-four {
+  --hanger-left: 93%;
+  --hanger-drop: 43vh;
+  --hanger-speed: 4.7s;
+  --hanger-delay: -1.2s;
+}
+
+@keyframes hanging-spider-sway {
+  from { transform: rotate(-5deg) translateX(-3px); }
+  to { transform: rotate(5deg) translateX(3px); }
+}
+
 /* Full-screen death flash */
 body.danger-flash::after {
   content: "";
@@ -416,6 +523,7 @@ h1::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hanging-spider,
   .app::before {
     animation: none;
   }
@@ -626,6 +734,11 @@ h1::after {
 
 
 @media (max-width: 420px) {
+  .hanger-two,
+  .hanger-three {
+    display: none;
+  }
+
   .app {
     padding: 14px;
   }
@@ -649,6 +762,12 @@ h1::after {
     <div class="circus-lights" aria-hidden="true">
       <span id="red-circus-light" class="circus-light red-circus-light"></span>
       <span id="blue-circus-light" class="circus-light blue-circus-light"></span>
+    </div>
+    <div class="hanging-spiders" aria-hidden="true">
+      <span class="hanging-spider hanger-one"><span class="cartoon-spider"></span></span>
+      <span class="hanging-spider hanger-two"><span class="cartoon-spider"></span></span>
+      <span class="hanging-spider hanger-three"><span class="cartoon-spider"></span></span>
+      <span class="hanging-spider hanger-four"><span class="cartoon-spider"></span></span>
     </div>
     <main class="app">
       <header class="top">
