@@ -369,6 +369,7 @@
           // ignore storage errors
         }
       }
+      bestEl.textContent = formatMs(bestMs);
       document.body.classList.remove("danger-flash");
       void document.body.offsetWidth; // restart animation
       document.body.classList.add("danger-flash");
@@ -380,6 +381,7 @@
       if (state.status === logic.STATUS.paused) {
         stopLoop();
         stopSpinChaos();
+        document.body.classList.remove("web-spin");
       }
       if (state.status === logic.STATUS.playing) {
         scheduleNextTick();

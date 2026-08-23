@@ -2408,6 +2408,7 @@ h1::after {
           // ignore storage errors
         }
       }
+      bestEl.textContent = formatMs(bestMs);
       document.body.classList.remove("danger-flash");
       void document.body.offsetWidth; // restart animation
       document.body.classList.add("danger-flash");
@@ -2419,6 +2420,7 @@ h1::after {
       if (state.status === logic.STATUS.paused) {
         stopLoop();
         stopSpinChaos();
+        document.body.classList.remove("web-spin");
       }
       if (state.status === logic.STATUS.playing) {
         scheduleNextTick();
