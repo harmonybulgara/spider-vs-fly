@@ -2066,7 +2066,7 @@ h1::after {
 
   function updateCircusLights() {
     const reduced = !!reduceMotion?.matches;
-    const motionScale = reduced ? 0.22 : 1;
+    const motionScale = reduced ? 0.65 : 1;
     const seconds = ((performance.now() - circusLightStartMs) / 1000) * motionScale;
     const centerX = 50 + Math.sin(seconds * 0.2) * 8;
     const centerY = 50 + Math.cos(seconds * 0.17) * 6;
