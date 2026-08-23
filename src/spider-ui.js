@@ -148,6 +148,23 @@
 
   const reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
   let spinTimer = null;
+  let circusLightTimer = null;
+  const circusLightStartMs = performance.now();
+
+  function updateCircusLights() {
+    if (reduceMotion?.matches) return;
+    const seconds = (performance.now() - circusLightStartMs) / 1000;
+    const centerX = 50 + Math.sin(seconds * 0.31) * 18;
+    const centerY = 50 + Math.cos(seconds * 0.27) * 13;
+    const separation = Math.cos(seconds * 0.32);
+    const orbitX = Math.cos(seconds * 0.78) * 38 * separation;
+    const orbitY = Math.sin(seconds * 0.78) * 32 * separation;
+    document.documentElement.style.setProperty("--red-light-x", `${centerX + orbitX}%`);
+    document.documentElement.style.setProperty("--red-light-y", `${centerY + orbitY}%`);
+    document.documentElement.style.setProperty("--blue-light-x", `${centerX - orbitX}%`);
+    document.documentElement.style.setProperty("--blue-light-y", `${centerY - orbitY}%`);
+    circusLightTimer = window.setTimeout(updateCircusLights, 80);
+  }
 
   function stopSpinChaos() {
     if (spinTimer !== null) window.clearTimeout(spinTimer);
@@ -538,6 +555,7 @@
 
   render();
   updateIntensity();
+  if (circusLightTimer === null) updateCircusLights();
   // Starting screen: game begins only after Start / first input.
   stopLoop();
 })();

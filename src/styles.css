@@ -10,6 +10,10 @@
   --border: rgba(255, 255, 255, 0.18);
   --ink: #090718;
   --gold: #ffd54a;
+  --red-light-x: 12%;
+  --red-light-y: 20%;
+  --blue-light-x: 88%;
+  --blue-light-y: 80%;
   --cell-size: min(4.4vw, 20px);
   --gap: 1px;
 }
@@ -28,10 +32,7 @@ body {
     Helvetica,
     Arial,
     sans-serif;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(255, 59, 59, 0.16) 0 9%, transparent 10%),
-    radial-gradient(circle at 88% 76%, rgba(59, 130, 246, 0.18) 0 11%, transparent 12%),
-    linear-gradient(145deg, #120d2c, var(--bg) 55%, #17133a);
+  background: linear-gradient(145deg, #120d2c, var(--bg) 55%, #17133a);
   background-attachment: fixed;
   color: var(--text);
 }
@@ -99,6 +100,19 @@ a {
     radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.06), transparent 60%);
   transform-origin: 50% 45%;
   animation: none;
+}
+
+.app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at var(--red-light-x) var(--red-light-y), rgba(255, 35, 70, 0.52) 0 4vmax, rgba(255, 35, 70, 0.22) 15vmax, transparent 32vmax),
+    radial-gradient(circle at var(--blue-light-x) var(--blue-light-y), rgba(35, 105, 255, 0.56) 0 4vmax, rgba(35, 105, 255, 0.24) 15vmax, transparent 32vmax);
+  background-blend-mode: screen;
+  filter: saturate(1.25);
 }
 
 @keyframes web-spin {
