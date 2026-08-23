@@ -376,33 +376,6 @@ h1::after {
   }
 }
 
-.intense-shake .grid {
-  animation: grid-shake 120ms linear infinite;
-}
-
-@keyframes grid-shake {
-  0% {
-    left: 0;
-    top: 0;
-  }
-  20% {
-    left: var(--shake, 0px);
-    top: 0;
-  }
-  45% {
-    left: calc(0px - var(--shake, 0px));
-    top: var(--shake, 0px);
-  }
-  70% {
-    left: var(--shake, 0px);
-    top: calc(0px - var(--shake, 0px));
-  }
-  100% {
-    left: 0;
-    top: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .app::before {
     animation: none;
@@ -411,9 +384,6 @@ h1::after {
     animation: none;
   }
   .cell.web-trap {
-    animation: none;
-  }
-  .intense-shake .grid {
     animation: none;
   }
 }

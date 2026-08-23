@@ -139,8 +139,11 @@
     const timeShake = Math.pow(s, 1.35) * 9; // grows non-linearly
     const threatShake = (t * t) * (1.2 + s * 3.2); // threat matters more later
     const shake = Math.round(timeShake + threatShake);
-    gridEl.style.setProperty("--shake", `${Math.min(8, shake)}px`);
-    document.body.classList.toggle("intense-shake", shake >= 2 && s > 0.08 && state.status === logic.STATUS.playing);
+    const shakeAmount = Math.min(8, shake);
+    const shaking = shakeAmount >= 2 && s > 0.08 && state.status === logic.STATUS.playing && !reduceMotion?.matches;
+    document.body.classList.toggle("intense-shake", shaking);
+    gridEl.style.left = shaking ? `${Math.round((Math.random() * 2 - 1) * shakeAmount)}px` : "0px";
+    gridEl.style.top = shaking ? `${Math.round((Math.random() * 2 - 1) * shakeAmount)}px` : "0px";
   }
 
   const reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;

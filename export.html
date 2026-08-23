@@ -386,33 +386,6 @@ h1::after {
   }
 }
 
-.intense-shake .grid {
-  animation: grid-shake 120ms linear infinite;
-}
-
-@keyframes grid-shake {
-  0% {
-    left: 0;
-    top: 0;
-  }
-  20% {
-    left: var(--shake, 0px);
-    top: 0;
-  }
-  45% {
-    left: calc(0px - var(--shake, 0px));
-    top: var(--shake, 0px);
-  }
-  70% {
-    left: var(--shake, 0px);
-    top: calc(0px - var(--shake, 0px));
-  }
-  100% {
-    left: 0;
-    top: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .app::before {
     animation: none;
@@ -421,9 +394,6 @@ h1::after {
     animation: none;
   }
   .cell.web-trap {
-    animation: none;
-  }
-  .intense-shake .grid {
     animation: none;
   }
 }
@@ -2046,8 +2016,11 @@ h1::after {
     const timeShake = Math.pow(s, 1.35) * 9; // grows non-linearly
     const threatShake = (t * t) * (1.2 + s * 3.2); // threat matters more later
     const shake = Math.round(timeShake + threatShake);
-    gridEl.style.setProperty("--shake", `${Math.min(8, shake)}px`);
-    document.body.classList.toggle("intense-shake", shake >= 2 && s > 0.08 && state.status === logic.STATUS.playing);
+    const shakeAmount = Math.min(8, shake);
+    const shaking = shakeAmount >= 2 && s > 0.08 && state.status === logic.STATUS.playing && !reduceMotion?.matches;
+    document.body.classList.toggle("intense-shake", shaking);
+    gridEl.style.left = shaking ? `${Math.round((Math.random() * 2 - 1) * shakeAmount)}px` : "0px";
+    gridEl.style.top = shaking ? `${Math.round((Math.random() * 2 - 1) * shakeAmount)}px` : "0px";
   }
 
   const reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
