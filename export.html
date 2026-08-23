@@ -87,10 +87,10 @@ body {
   top: 0;
   left: var(--hanger-left);
   width: 72px;
-  height: var(--hanger-drop);
+  height: var(--hanger-min);
   margin-left: -36px;
   transform-origin: 50% 0;
-  animation: hanging-spider-sway var(--hanger-speed) ease-in-out infinite alternate;
+  animation: hanging-spider-sway var(--hanger-speed) ease-in-out infinite;
   animation-delay: var(--hanger-delay);
 }
 
@@ -150,35 +150,45 @@ body {
 
 .hanger-one {
   --hanger-left: 8%;
-  --hanger-drop: 25vh;
-  --hanger-speed: 4.4s;
+  --hanger-min: 17vh;
+  --hanger-max: 31vh;
+  --hanger-speed: 3.2s;
   --hanger-delay: -0.8s;
 }
 
 .hanger-two {
   --hanger-left: 27%;
-  --hanger-drop: 38vh;
-  --hanger-speed: 5.6s;
+  --hanger-min: 27vh;
+  --hanger-max: 44vh;
+  --hanger-speed: 3.8s;
   --hanger-delay: -2.1s;
 }
 
 .hanger-three {
   --hanger-left: 74%;
-  --hanger-drop: 31vh;
-  --hanger-speed: 5.1s;
+  --hanger-min: 21vh;
+  --hanger-max: 38vh;
+  --hanger-speed: 3.5s;
   --hanger-delay: -3.4s;
 }
 
 .hanger-four {
   --hanger-left: 93%;
-  --hanger-drop: 43vh;
-  --hanger-speed: 4.7s;
+  --hanger-min: 30vh;
+  --hanger-max: 49vh;
+  --hanger-speed: 3.3s;
   --hanger-delay: -1.2s;
 }
 
 @keyframes hanging-spider-sway {
-  from { transform: rotate(-5deg) translateX(-3px); }
-  to { transform: rotate(5deg) translateX(3px); }
+  0%, 100% {
+    height: var(--hanger-min);
+    transform: rotate(-6deg) translateX(-4px);
+  }
+  50% {
+    height: var(--hanger-max);
+    transform: rotate(6deg) translateX(4px);
+  }
 }
 
 /* Full-screen death flash */
